@@ -5,7 +5,7 @@ description = "Free-Wili firmware updater"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "freewili==0.0.25.post7.dev0",
+    "freewili==0.0.25.post8.dev0",
     "pyside6>=6.9.0",
     "result>=0.17.0",
 ]

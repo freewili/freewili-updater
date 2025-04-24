@@ -1,7 +1,9 @@
 import dataclasses
 import enum
 from pathlib import Path
+import platform
 from queue import Empty, Queue
+import subprocess
 from threading import Thread
 import threading
 import time
@@ -59,6 +61,11 @@ def send_file(src, dst, index, device, queue):
                     break
                 written_bytes += 1024
                 fdst.write(buf)
+                fdst.flush()
+                if platform.system() == "Linux":
+                    ret = subprocess.call(f"sync -d {dst}", shell=True)
+                    if ret != 0:
+                        print(ret)
                 if (
                     time.time() - last_update >= 1.0
                     and written_bytes != last_written_bytes
@@ -155,118 +162,122 @@ class MainWidget(QtWidgets.QWidget):
 
     @QtCore.Slot()
     def on_pushButtonRefresh_clicked(self):
-        if self.ui.pushButtonRefresh.text() == "Running...":
-            self.worker.quit()
-            return
-        model = self.ui.treeViewDevices.model()
-        if not model:
-            return
-        
-        model.clear()
-        model.setHorizontalHeaderLabels(self.header_labels)
-
-        
-        
-        # Lets create the worker and start it
-        self.worker = updater.Worker(self.run_refresh)
-        self.worker.signals.started.connect(self.refresh_worker_started)
-        self.worker.signals.finished.connect(self.refresh_worker_complete)
-        QtCore.QThreadPool.globalInstance().start(self.worker)
-
-        # fw_devices = FreeWili.find_all()
-        # selected = self.ui.treeViewDevices.selectionModel().selectedRows()
-        # devices = []
-        # for i, item in enumerate(selected):
-        #     name = model.item(item.row(), 0).data(QtCore.Qt.DisplayRole)
-        #     serial = model.item(item.row(), 1).data(QtCore.Qt.DisplayRole)
-        #     kind = model.item(item.row(), 2).data(QtCore.Qt.DisplayRole)
-        #     for device in fw_devices:
-        #         if device.device.serial != serial:
-        #             continue
-        #         if name == "Main" and self.ui.groupBoxMainUf2.isChecked():
-        #             devices.append(
-        #                 DeviceInfo(
-        #                     FreeWiliProcessorType.Main,
-        #                     device.device.serial,
-        #                     "MassStorage" in kind,
-        #                 )
-        #             )
-        #         elif name == "Display" and self.ui.groupBoxDisplayUf2.isChecked():
-        #             devices.append(
-        #                 DeviceInfo(
-        #                     FreeWiliProcessorType.Display,
-        #                     device.device.serial,
-        #                     "MassStorage" in kind,
-        #                 )
-        #             )
-
-        # devices = FreeWili.find_all()
-
+        # if self.ui.pushButtonRefresh.text() == "Running...":
+        #     self.worker.quit()
+        #     return
         # model = self.ui.treeViewDevices.model()
         # if not model:
-        #     self.ui.treeViewDevices.setModel(QtGui.QStandardItemModel())
-        #     model = self.ui.treeViewDevices.model()
+        #     return
+        
         # model.clear()
-        # header_labels = (
-        #     "Type",
-        #     "Serial",
-        #     "Kind",
-        #     "Version",
-        #     "Path",
-        #     "Name",
-        #     "Serial",
-        #     "Status",
-        # )
-        # model.setHorizontalHeaderLabels(header_labels)
-        # devices_to_poll = []
-        # for device in devices:
-        #     if device.main:
-        #         version = ""
-        #         # if device.main_serial:
-        #         #     match device.main_serial.get_app_info():
-        #         #         case Ok(app_version):
-        #         #             version = f"v{app_version.version}"
-        #         #         case Err(msg):
-        #         #             version = msg
-        #         model.appendRow(
-        #             [
-        #                 QtGui.QStandardItem("Main"),
-        #                 QtGui.QStandardItem(f"{device.device.serial}"),
-        #                 QtGui.QStandardItem(device.main.kind.name),
-        #                 QtGui.QStandardItem(version),
-        #                 QtGui.QStandardItem(
-        #                     " ".join(device.main.paths if device.main.paths else "")
-        #                 ),
-        #                 QtGui.QStandardItem(device.main.name),
-        #                 QtGui.QStandardItem(device.main.serial),
-        #             ]
-        #         )
-        #     if device.display:
-        #         version = ""
-        #         # if device.display_serial:
-        #         #     match device.display_serial.get_app_info():
-        #         #         case Ok(app_version):
-        #         #             version = f"v{app_version.version}"
-        #         #         case Err(msg):
-        #         #             version = msg
-        #         model.appendRow(
-        #             [
-        #                 QtGui.QStandardItem("Display"),
-        #                 QtGui.QStandardItem(f"{device.device.serial}"),
-        #                 QtGui.QStandardItem(device.display.kind.name),
-        #                 QtGui.QStandardItem(version),
-        #                 QtGui.QStandardItem(
-        #                     " ".join(
-        #                         device.display.paths if device.display.paths else ""
-        #                     )
-        #                 ),
-        #                 QtGui.QStandardItem(device.display.name),
-        #                 QtGui.QStandardItem(device.display.serial),
-        #             ]
-        #         )
-        # for x in range(model.columnCount()):
-        #     self.ui.treeViewDevices.resizeColumnToContents(x)
-        # self.ui.groupBox.setTitle(f"Devices ({len(devices)})")
+        # model.setHorizontalHeaderLabels(self.header_labels)
+
+        
+        
+        # # Lets create the worker and start it
+        # self.worker = updater.Worker(self.run_refresh)
+        # self.worker.signals.started.connect(self.refresh_worker_started)
+        # self.worker.signals.finished.connect(self.refresh_worker_complete)
+        # QtCore.QThreadPool.globalInstance().start(self.worker)
+
+        model = self.ui.treeViewDevices.model()
+        if not model:
+            self.ui.treeViewDevices.setModel(QtGui.QStandardItemModel())
+            model = self.ui.treeViewDevices.model()
+        fw_devices = FreeWili.find_all()
+        selected = self.ui.treeViewDevices.selectionModel().selectedRows()
+        devices = []
+        for i, item in enumerate(selected):
+            name = model.item(item.row(), 0).data(QtCore.Qt.DisplayRole)
+            serial = model.item(item.row(), 1).data(QtCore.Qt.DisplayRole)
+            kind = model.item(item.row(), 2).data(QtCore.Qt.DisplayRole)
+            for device in fw_devices:
+                if device.device.serial != serial:
+                    continue
+                if name == "Main" and self.ui.groupBoxMainUf2.isChecked():
+                    devices.append(
+                        DeviceInfo(
+                            FreeWiliProcessorType.Main,
+                            device.device.serial,
+                            "MassStorage" in kind,
+                        )
+                    )
+                elif name == "Display" and self.ui.groupBoxDisplayUf2.isChecked():
+                    devices.append(
+                        DeviceInfo(
+                            FreeWiliProcessorType.Display,
+                            device.device.serial,
+                            "MassStorage" in kind,
+                        )
+                    )
+
+        devices = FreeWili.find_all()
+
+        model = self.ui.treeViewDevices.model()
+        if not model:
+            self.ui.treeViewDevices.setModel(QtGui.QStandardItemModel())
+            model = self.ui.treeViewDevices.model()
+        model.clear()
+        header_labels = (
+            "Type",
+            "Serial",
+            "Kind",
+            "Version",
+            "Path",
+            "Name",
+            "Serial",
+            "Status",
+        )
+        model.setHorizontalHeaderLabels(header_labels)
+        devices_to_poll = []
+        for device in devices:
+            if device.main:
+                version = ""
+                # if device.main_serial:
+                #     match device.main_serial.get_app_info():
+                #         case Ok(app_version):
+                #             version = f"v{app_version.version}"
+                #         case Err(msg):
+                #             version = msg
+                model.appendRow(
+                    [
+                        QtGui.QStandardItem("Main"),
+                        QtGui.QStandardItem(f"{device.device.serial}"),
+                        QtGui.QStandardItem(device.main.kind.name),
+                        QtGui.QStandardItem(version),
+                        QtGui.QStandardItem(
+                            " ".join(device.main.paths if device.main.paths else "")
+                        ),
+                        QtGui.QStandardItem(device.main.name),
+                        QtGui.QStandardItem(device.main.serial),
+                    ]
+                )
+            if device.display:
+                version = ""
+                # if device.display_serial:
+                #     match device.display_serial.get_app_info():
+                #         case Ok(app_version):
+                #             version = f"v{app_version.version}"
+                #         case Err(msg):
+                #             version = msg
+                model.appendRow(
+                    [
+                        QtGui.QStandardItem("Display"),
+                        QtGui.QStandardItem(f"{device.device.serial}"),
+                        QtGui.QStandardItem(device.display.kind.name),
+                        QtGui.QStandardItem(version),
+                        QtGui.QStandardItem(
+                            " ".join(
+                                device.display.paths if device.display.paths else ""
+                            )
+                        ),
+                        QtGui.QStandardItem(device.display.name),
+                        QtGui.QStandardItem(device.display.serial),
+                    ]
+                )
+        for x in range(model.columnCount()):
+            self.ui.treeViewDevices.resizeColumnToContents(x)
+        self.ui.groupBox.setTitle(f"Devices ({len(devices)})")
 
     @QtCore.Slot()
     def on_pushButtonReflash_clicked(self):
@@ -480,7 +491,7 @@ class MainWidget(QtWidgets.QWidget):
                 if device.processor_type in processor_types:
                     update_progress(tx_queue, device, f"{msg}: Done waiting", 100)
 
-        bootloader_delay_sec = 15.0
+        bootloader_delay_sec = 5.0
         devices: tuple[DeviceInfo] = kwargs["devices"]
         # Lets make sure everything is in UF2 bootloader first
         try:

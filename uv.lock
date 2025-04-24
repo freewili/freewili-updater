@@ -4,7 +4,7 @@ requires-python = ">=3.10"
 
 [[package]]
 name = "freewili"
-version = "0.0.25.post7.dev0"
+version = "0.0.25.post8.dev0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "libusb1" },
@@ -15,9 +15,9 @@ dependencies = [
     { name = "result" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/5d/18/8c58bf8ad01b0a8b1b04f68cfc8bcb27fd287a99336a9a76bf1b4fd97dd1/freewili-0.0.25.post7.dev0.tar.gz", hash = "sha256:4142038feab982d7ada3b2249aaf53c84708b025aafe559f311a450b56fd120f", size = 286393 }
+sdist = { url = "https://files.pythonhosted.org/packages/47/02/40d3ed20ad7400a48f04bb7b52d28e4413bee7837b4605503287d084f3e3/freewili-0.0.25.post8.dev0.tar.gz", hash = "sha256:71de4f8539b355e17b8d40aa7e2c769e59052dd3dae831fa5b5c4d0f11d7990b", size = 286406 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/0d/6a/63678e3a33c763932f627a109de9c6540b9a83cd60ab575d0aa201a03a53/freewili-0.0.25.post7.dev0-py3-none-any.whl", hash = "sha256:b54ed683cd9bb1fdadf6aabdb12a4d34564308eca1495936e39022fd184caa82", size = 19423 },
+    { url = "https://files.pythonhosted.org/packages/10/7e/b6bbefa53fb379cdb074bc99fe0d02e95749abdbf74720e70d328372cc9e/freewili-0.0.25.post8.dev0-py3-none-any.whl", hash = "sha256:78d17f639eb17dde2b84a4fa75c83a11c8b41b01ca007b912d8cf2cc7047bc2c", size = 19461 },
 ]
 
 [[package]]
@@ -32,7 +32,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "freewili", specifier = "==0.0.25.post7.dev0" },
+    { name = "freewili", specifier = "==0.0.25.post8.dev0" },
     { name = "pyside6", specifier = ">=6.9.0" },
     { name = "result", specifier = ">=0.17.0" },
 ]
