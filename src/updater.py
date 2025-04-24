@@ -105,11 +105,7 @@ class FreeWiliBootloader:
         if progress is not None:
             assert isinstance(progress, (int, float))
 
-        self.msg_queue.put(
-            FreeWiliBootloaderMessage(
-                self.freewili.device.serial, msg, progress, success
-            )
-        )
+        self.msg_queue.put(FreeWiliBootloaderMessage(self.freewili.device.serial, msg, progress, success))
         if self._debug_print:
             print(f"{self.freewili.device.serial}: {msg} {progress} {success}")
 
@@ -173,9 +169,7 @@ class FreeWiliBootloader:
                 return True
             self.freewili.get_serial_from(processor_type).expect(
                 f"Failed to get serial on processor {processor_type.name}"
-            ).reset_to_uf2_bootloader().expect(
-                f"Failed to enter UF2 bootloader on {processor_type.name}"
-            )
+            ).reset_to_uf2_bootloader().expect(f"Failed to enter UF2 bootloader on {processor_type.name}")
             self._message("Waiting for device driver...", True)
             if not self._wait_for_device((USBDeviceType.MassStorage,), processor_type):
                 self._message("Device no longer exists", False)
@@ -208,18 +202,10 @@ class FreeWiliBootloader:
         for device in devices:
             if self.freewili.device.serial != device.device.serial:
                 continue
-            if (
-                processor_type == FreeWiliProcessorType.Main
-                and device.main
-                and device.main.paths
-            ):
+            if processor_type == FreeWiliProcessorType.Main and device.main and device.main.paths:
                 path = pathlib.Path(device.main.paths[0])
                 break
-            elif (
-                processor_type == FreeWiliProcessorType.Display
-                and device.display
-                and device.display.paths
-            ):
+            elif processor_type == FreeWiliProcessorType.Display and device.display and device.display.paths:
                 path = pathlib.Path(device.display.paths[0])
                 break
         if not path:
@@ -254,10 +240,7 @@ class FreeWiliBootloader:
                             os.fsync(fdst.fileno())
                         except OSError as ex:
                             print(ex)
-                    if (
-                        time.time() - last_update >= 1.0
-                        and written_bytes != last_written_bytes
-                    ):
+                    if time.time() - last_update >= 1.0 and written_bytes != last_written_bytes:
                         self._message(
                             f"Wrote {written_bytes / 1000:.0f}KB of {fsize_bytes / 1000:.0f}KB...",
                             True,
@@ -282,21 +265,11 @@ class FreeWiliBootloader:
 
 
 if __name__ == "__main__":
-    fw_bootloader = FreeWiliBootloader(
-        FreeWili.find_first().expect("Failed to find any devices")
-    )
+    fw_bootloader = FreeWiliBootloader(FreeWili.find_first().expect("Failed to find any devices"))
     # print(fw_bootloader.enter_uf2(FreeWiliProcessorType.Main))
-    print(
-        fw_bootloader.flash_firmware(
-            "/home/drebbe/Downloads/FreeWiliDisplayV44.uf2", FreeWiliProcessorType.Display
-        )
-    )
+    print(fw_bootloader.flash_firmware("/home/drebbe/Downloads/FreeWiliDisplayV44.uf2", FreeWiliProcessorType.Display))
     time.sleep(3)
-    print(
-        fw_bootloader.flash_firmware(
-            "/home/drebbe/Downloads/FreeWiliMainv48.uf2", FreeWiliProcessorType.Main
-        )
-    )
+    print(fw_bootloader.flash_firmware("/home/drebbe/Downloads/FreeWiliMainv48.uf2", FreeWiliProcessorType.Main))
 
     while True:
         try:

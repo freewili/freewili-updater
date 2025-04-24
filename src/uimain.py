@@ -32,9 +32,7 @@ class NewFreeWiliDevice:
     display_app_version: str
 
 
-def update_progress(
-    tx_queue: Queue, device: DeviceInfo, msg: str, progress: float
-) -> None:
+def update_progress(tx_queue: Queue, device: DeviceInfo, msg: str, progress: float) -> None:
     tx_queue.put(
         updater.WorkerCommand.new(
             updater.WorkerCommandType.Progress,
@@ -66,10 +64,7 @@ def send_file(src, dst, index, device, queue):
                     ret = subprocess.call(f"sync -d {dst}", shell=True)
                     if ret != 0:
                         print(ret)
-                if (
-                    time.time() - last_update >= 1.0
-                    and written_bytes != last_written_bytes
-                ):
+                if time.time() - last_update >= 1.0 and written_bytes != last_written_bytes:
                     update_progress(
                         queue,
                         device,
@@ -97,9 +92,7 @@ def send_file(src, dst, index, device, queue):
         )
 
 
-def update_uf2(
-    src_fname: str, dst_path: str, index: int, device: DeviceInfo, queue: Queue
-):
+def update_uf2(src_fname: str, dst_path: str, index: int, device: DeviceInfo, queue: Queue):
     dst = Path(dst_path) / Path(src_fname).name
     send_file(src_fname, dst, index, device, queue)
 
@@ -293,9 +286,7 @@ class MainWidget(QtWidgets.QWidget):
             for i, bl_device in enumerate(bl_devices):
                 t = Thread(
                     target=bl_device.enter_uf2,
-                    args=(
-                        FreeWiliProcessorType.Display,
-                    ),
+                    args=(FreeWiliProcessorType.Display,),
                 )
                 t.start()
                 threads.append(t)
@@ -308,9 +299,7 @@ class MainWidget(QtWidgets.QWidget):
             for i, bl_device in enumerate(bl_devices):
                 t = Thread(
                     target=bl_device.enter_uf2,
-                    args=(
-                        FreeWiliProcessorType.Main,
-                    ),
+                    args=(FreeWiliProcessorType.Main,),
                 )
                 t.start()
                 threads.append(t)
@@ -459,9 +448,7 @@ class MainWidget(QtWidgets.QWidget):
         if not model:
             return
         for i in range(model.rowCount()):
-            serial = model.item(i, self.header_labels.index("Name")).data(
-                QtCore.Qt.DisplayRole
-            )
+            serial = model.item(i, self.header_labels.index("Name")).data(QtCore.Qt.DisplayRole)
             if serial == msg.serial:
                 model.setData(
                     model.index(i, self.header_labels.index("Status")),
