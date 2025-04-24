@@ -1,3 +1,4 @@
+import os
 import pathlib
 import platform
 import subprocess
@@ -135,7 +136,10 @@ class FreeWiliBootloader:
             while (time.time() - start) < timeout_sec:
                 if self._quit.load() == 1:
                     return False
-                devices = FreeWili.find_all()
+                try:
+                    devices = FreeWili.find_all()
+                except RuntimeError as _ex:
+                    continue
                 for device in devices:
                     if self.freewili.device.serial != device.device.serial:
                         continue
@@ -227,12 +231,11 @@ class FreeWiliBootloader:
         path = path / uf2_fname.name
         try:
             fsize_bytes = uf2_fname.stat().st_size
-
+            start = time.time()
+            written_bytes = 0
+            last_written_bytes = 0
+            last_update = start
             with open(str(uf2_fname), "rb") as fsrc, open(str(path), "wb") as fdst:
-                written_bytes = 0
-                last_written_bytes = 0
-                start = time.time()
-                last_update = start
                 while True:
                     buf = fsrc.read(1024)  # Read 1024 bytes at a time
                     if not buf:
@@ -246,6 +249,11 @@ class FreeWiliBootloader:
                         ret = subprocess.call(f"sync -d {path}", shell=True)
                         if ret != 0:
                             print(ret)
+                    else:
+                        try:
+                            os.fsync(fdst.fileno())
+                        except OSError as ex:
+                            print(ex)
                     if (
                         time.time() - last_update >= 1.0
                         and written_bytes != last_written_bytes
@@ -257,15 +265,14 @@ class FreeWiliBootloader:
                         )
                         last_update = time.time()
                         last_written_bytes = written_bytes
-                # print()
                 fdst.flush()
-                end = time.time()
-                self._message(
-                    f"Wrote {written_bytes / 1000:.1f}KB in {end - start:.1f} seconds...",
-                    True,
-                    100.0,
-                )
-                return True
+            end = time.time()
+            self._message(
+                f"Wrote {written_bytes / 1000:.1f}KB in {end - start:.1f} seconds...",
+                True,
+                100.0,
+            )
+            return True
         except Exception as ex:
             self._message(
                 str(ex),
