@@ -113,14 +113,10 @@ class MainWidget(QtWidgets.QWidget):
         settings = QtCore.QSettings()
 
         self.header_labels = (
-            "Type",
-            "Serial",
-            "Kind",
-            "Version",
-            "Path",
             "Name",
-            "Serial",
             "Status",
+            "Kind",
+            "Serial",
         )
 
         self.ui.lineEditMainUf2.setText(settings.value("MainUF2Path", ""))
@@ -160,124 +156,59 @@ class MainWidget(QtWidgets.QWidget):
             settings.setValue("DisplayUF2Path", fname)
             self.ui.lineEditDisplayUf2.setText(fname)
 
+    def add_device(self, model: QtGui.QStandardItemModel, freewili: FreeWili) -> None:
+        assert isinstance(model, QtGui.QStandardItemModel)
+        assert isinstance(freewili, FreeWili)
+
+        parent_item = QtGui.QStandardItem(freewili.device.serial)
+        if freewili.main:
+            status = ""
+            if freewili.main.paths:
+                status = freewili.main.paths[0]
+            elif freewili.main.port:
+                status = freewili.main.port
+            parent_item.appendRow(
+                [
+                    QtGui.QStandardItem(f"Main - {freewili.main.name}"),
+                    QtGui.QStandardItem(status),
+                    QtGui.QStandardItem(freewili.main.kind.name),
+                    QtGui.QStandardItem(freewili.main.serial),
+                ]
+            )
+        if freewili.display:
+            status = ""
+            if freewili.display.paths:
+                status = freewili.display.paths[0]
+            elif freewili.display.port:
+                status = freewili.display.port
+            parent_item.appendRow(
+                [
+                    QtGui.QStandardItem(f"Display - {freewili.display.name}"),
+                    QtGui.QStandardItem(status),
+                    QtGui.QStandardItem(freewili.display.kind.name),
+                    QtGui.QStandardItem(freewili.display.serial),
+                ]
+            )
+
+        model.appendRow(parent_item)
+
     @QtCore.Slot()
     def on_pushButtonRefresh_clicked(self):
-        # if self.ui.pushButtonRefresh.text() == "Running...":
-        #     self.worker.quit()
-        #     return
-        # model = self.ui.treeViewDevices.model()
-        # if not model:
-        #     return
-        
-        # model.clear()
-        # model.setHorizontalHeaderLabels(self.header_labels)
-
-        
-        
-        # # Lets create the worker and start it
-        # self.worker = updater.Worker(self.run_refresh)
-        # self.worker.signals.started.connect(self.refresh_worker_started)
-        # self.worker.signals.finished.connect(self.refresh_worker_complete)
-        # QtCore.QThreadPool.globalInstance().start(self.worker)
-
-        model = self.ui.treeViewDevices.model()
-        if not model:
-            self.ui.treeViewDevices.setModel(QtGui.QStandardItemModel())
-            model = self.ui.treeViewDevices.model()
-        fw_devices = FreeWili.find_all()
-        selected = self.ui.treeViewDevices.selectionModel().selectedRows()
-        devices = []
-        for i, item in enumerate(selected):
-            name = model.item(item.row(), 0).data(QtCore.Qt.DisplayRole)
-            serial = model.item(item.row(), 1).data(QtCore.Qt.DisplayRole)
-            kind = model.item(item.row(), 2).data(QtCore.Qt.DisplayRole)
-            for device in fw_devices:
-                if device.device.serial != serial:
-                    continue
-                if name == "Main" and self.ui.groupBoxMainUf2.isChecked():
-                    devices.append(
-                        DeviceInfo(
-                            FreeWiliProcessorType.Main,
-                            device.device.serial,
-                            "MassStorage" in kind,
-                        )
-                    )
-                elif name == "Display" and self.ui.groupBoxDisplayUf2.isChecked():
-                    devices.append(
-                        DeviceInfo(
-                            FreeWiliProcessorType.Display,
-                            device.device.serial,
-                            "MassStorage" in kind,
-                        )
-                    )
-
-        devices = FreeWili.find_all()
-
         model = self.ui.treeViewDevices.model()
         if not model:
             self.ui.treeViewDevices.setModel(QtGui.QStandardItemModel())
             model = self.ui.treeViewDevices.model()
         model.clear()
-        header_labels = (
-            "Type",
-            "Serial",
-            "Kind",
-            "Version",
-            "Path",
-            "Name",
-            "Serial",
-            "Status",
-        )
-        model.setHorizontalHeaderLabels(header_labels)
-        devices_to_poll = []
-        for device in devices:
-            if device.main:
-                version = ""
-                # if device.main_serial:
-                #     match device.main_serial.get_app_info():
-                #         case Ok(app_version):
-                #             version = f"v{app_version.version}"
-                #         case Err(msg):
-                #             version = msg
-                model.appendRow(
-                    [
-                        QtGui.QStandardItem("Main"),
-                        QtGui.QStandardItem(f"{device.device.serial}"),
-                        QtGui.QStandardItem(device.main.kind.name),
-                        QtGui.QStandardItem(version),
-                        QtGui.QStandardItem(
-                            " ".join(device.main.paths if device.main.paths else "")
-                        ),
-                        QtGui.QStandardItem(device.main.name),
-                        QtGui.QStandardItem(device.main.serial),
-                    ]
-                )
-            if device.display:
-                version = ""
-                # if device.display_serial:
-                #     match device.display_serial.get_app_info():
-                #         case Ok(app_version):
-                #             version = f"v{app_version.version}"
-                #         case Err(msg):
-                #             version = msg
-                model.appendRow(
-                    [
-                        QtGui.QStandardItem("Display"),
-                        QtGui.QStandardItem(f"{device.device.serial}"),
-                        QtGui.QStandardItem(device.display.kind.name),
-                        QtGui.QStandardItem(version),
-                        QtGui.QStandardItem(
-                            " ".join(
-                                device.display.paths if device.display.paths else ""
-                            )
-                        ),
-                        QtGui.QStandardItem(device.display.name),
-                        QtGui.QStandardItem(device.display.serial),
-                    ]
-                )
+        model.setHorizontalHeaderLabels(self.header_labels)
+        fw_devices = FreeWili.find_all()
+
+        for fw_device in fw_devices:
+            self.add_device(model, fw_device)
+
+        self.ui.treeViewDevices.expandAll()
         for x in range(model.columnCount()):
             self.ui.treeViewDevices.resizeColumnToContents(x)
-        self.ui.groupBox.setTitle(f"Devices ({len(devices)})")
+        self.ui.groupBox.setTitle(f"Devices ({len(fw_devices)})")
 
     @QtCore.Slot()
     def on_pushButtonReflash_clicked(self):
@@ -291,34 +222,24 @@ class MainWidget(QtWidgets.QWidget):
         selected = self.ui.treeViewDevices.selectionModel().selectedRows()
         devices = []
         for i, item in enumerate(selected):
-            name = model.item(item.row(), 0).data(QtCore.Qt.DisplayRole)
-            serial = model.item(item.row(), 1).data(QtCore.Qt.DisplayRole)
-            kind = model.item(item.row(), 2).data(QtCore.Qt.DisplayRole)
-            for device in fw_devices:
-                if device.device.serial != serial:
-                    continue
-                if name == "Main" and self.ui.groupBoxMainUf2.isChecked():
-                    devices.append(
-                        DeviceInfo(
-                            FreeWiliProcessorType.Main,
-                            device.device.serial,
-                            "MassStorage" in kind,
-                        )
-                    )
-                elif name == "Display" and self.ui.groupBoxDisplayUf2.isChecked():
-                    devices.append(
-                        DeviceInfo(
-                            FreeWiliProcessorType.Display,
-                            device.device.serial,
-                            "MassStorage" in kind,
-                        )
-                    )
+            # We don't care about the children rows
+            if item.parent() and item.parent() == model.invisibleRootItem():
+                continue
+            if not model.item(item.row(), 0):
+                continue
+            serial = model.item(item.row(), 0).data(QtCore.Qt.DisplayRole)
+            for fw_device in fw_devices:
+                if fw_device.device.serial == serial:
+                    devices.append(fw_device)
+
         # Lets create the worker and start it
         self.worker = updater.Worker(
             self.run_reflash,
             devices=devices,
             main_uf2_fname=self.ui.lineEditMainUf2.text(),
             display_uf2_fname=self.ui.lineEditDisplayUf2.text(),
+            main_enabled=self.ui.groupBoxMainUf2.isChecked(),
+            display_enabled=self.ui.groupBoxDisplayUf2.isChecked(),
         )
         self.worker.signals.started.connect(self.reflash_worker_started)
         self.worker.signals.finished.connect(self.reflash_worker_complete)
@@ -333,262 +254,129 @@ class MainWidget(QtWidgets.QWidget):
         model = self.ui.treeViewDevices.model()
         if not model:
             return
-        devices = FreeWili.find_all()
+        fw_devices = FreeWili.find_all()
         selected = self.ui.treeViewDevices.selectionModel().selectedRows()
-        serial_devices = []
-        for item in selected:
-            name = model.item(item.row(), 0).data(QtCore.Qt.DisplayRole)
-            serial = model.item(item.row(), 1).data(QtCore.Qt.DisplayRole)
-            kind = model.item(item.row(), 2).data(QtCore.Qt.DisplayRole)
-            for device in devices:
-                if device.device.serial != serial:
-                    continue
-                if name == "Main" and "Serial" in kind:
-                    serial_devices.append(
-                        DeviceInfo(
-                            FreeWiliProcessorType.Main, device.device.serial, False
-                        )
-                    )
-                elif name == "Display" and "Serial" in kind:
-                    serial_devices.append(
-                        DeviceInfo(
-                            FreeWiliProcessorType.Display, device.device.serial, False
-                        )
-                    )
+        devices = []
+        for i, item in enumerate(selected):
+            # We don't care about the children rows
+            if item.parent() and item.parent() == model.invisibleRootItem():
+                continue
+            if not model.item(item.row(), 0):
+                continue
+            serial = model.item(item.row(), 0).data(QtCore.Qt.DisplayRole)
+            for fw_device in fw_devices:
+                if fw_device.device.serial == serial:
+                    devices.append(fw_device)
         # Lets create the worker and start it
-        self.worker = updater.Worker(self.run_enter_uf2, devices=serial_devices)
+        self.worker = updater.Worker(
+            self.run_enter_uf2,
+            devices=fw_devices,
+            main_enabled=self.ui.groupBoxMainUf2.isChecked(),
+            display_enabled=self.ui.groupBoxDisplayUf2.isChecked(),
+        )
         self.worker.signals.started.connect(self.uf2_worker_started)
         self.worker.signals.finished.connect(self.uf2_worker_complete)
         QtCore.QThreadPool.globalInstance().start(self.worker)
 
     @classmethod
-    def run_refresh(self, tx_queue: Queue, rx_queue: Queue, *args, **kwargs) -> None:
-        devices = FreeWili.find_all()
-        app_versions = {}
-        app_versions_lock = threading.Lock()
-
-        def poll_app_version(device):
-            main_version = ""
-            if device.main_serial:
-                match device.main_serial.get_app_info():
-                    case Ok(version):
-                        main_version = f"v{version}"
-                    case Err(msg):
-                        main_version = msg
-            display_version = ""
-            if device.display_serial:
-                match device.display_serial.get_app_info():
-                    case Ok(version):
-                        display_version = f"v{version}"
-                    case Err(msg):
-                        display_version = msg
-            with app_versions_lock:
-                app_versions[device.device.serial] = (main_version, display_version)
-
-        threads = []
-        for device in devices:
-            t = threading.Thread(target=poll_app_version, args=(device,))
-            t.start()
-            threads.append(t)
-
-        for t in threads:
-            t.join()
-
-        for device in devices:
-            main_version, display_version = app_versions[device.device.serial]
-            tx_queue.put(
-                updater.WorkerCommand.new(
-                    updater.WorkerCommandType.NewDevice,
-                    NewFreeWiliDevice(device, main_version, display_version),
-                )
-            )
-
-    @classmethod
-    def enter_uf2(self, tx_queue: Queue, rx_queue: Queue, *args, **kwargs) -> bool:
-        devices = FreeWili.find_all()
-        uf2_devices: tuple[DeviceInfo] = kwargs["devices"]
-        errors_occurred = False
-        for device in devices:
-            for uf2_device in uf2_devices:
-                # Only match the device we want to put into UF2
-                if device.device.serial != uf2_device.serial:
-                    continue
-                # Skip if we are already in UF2
-                if uf2_device.is_uf2_mode:
-                    tx_queue.put(
-                        updater.WorkerCommand.new(
-                            updater.WorkerCommandType.Progress,
-                            (uf2_device, "Already in UF2 bootloader...", 0),
-                        )
-                    )
-                    continue
-                # Lets go
-                tx_queue.put(
-                    updater.WorkerCommand.new(
-                        updater.WorkerCommandType.Progress,
-                        (uf2_device, "Entering UF2 bootloader...", 0),
-                    )
-                )
-                match device.reset_to_uf2_bootloader(uf2_device.processor_type):
-                    case Ok(_):
-                        tx_queue.put(
-                            updater.WorkerCommand.new(
-                                updater.WorkerCommandType.Progress,
-                                (uf2_device, "Entered UF2", 100),
-                            )
-                        )
-                    case Err(msg):
-                        errors_occurred = True
-                        tx_queue.put(
-                            updater.WorkerCommand.new(
-                                updater.WorkerCommandType.Error, (uf2_device, msg)
-                            )
-                        )
-        return not errors_occurred
-
-    @classmethod
     def run_enter_uf2(self, tx_queue: Queue, rx_queue: Queue, *args, **kwargs) -> None:
-        try:
-            if not self.enter_uf2(tx_queue, rx_queue, *args, **kwargs):
-                return
-        except Exception as _ex:
-            return
+        devices: tuple[DeviceInfo] = kwargs["devices"]
+        main_enabled: bool = kwargs["main_enabled"]
+        display_enabled: bool = kwargs["display_enabled"]
+
+        bl_devices: list[updater.FreeWiliBootloader] = []
+        for device in devices:
+            bl_devices.append(updater.FreeWiliBootloader(device, tx_queue))
+
+        if display_enabled:
+            threads = []
+            for i, bl_device in enumerate(bl_devices):
+                t = Thread(
+                    target=bl_device.enter_uf2,
+                    args=(
+                        FreeWiliProcessorType.Display,
+                    ),
+                )
+                t.start()
+                threads.append(t)
+
+            for thread in threads:
+                thread.join()
+
+        if main_enabled:
+            threads = []
+            for i, bl_device in enumerate(bl_devices):
+                t = Thread(
+                    target=bl_device.enter_uf2,
+                    args=(
+                        FreeWiliProcessorType.Main,
+                    ),
+                )
+                t.start()
+                threads.append(t)
+
+            for thread in threads:
+                thread.join()
 
     @classmethod
     def run_reflash(self, tx_queue: Queue, rx_queue: Queue, *args, **kwargs) -> None:
-        def _wait(
-            devices,
-            delay_sec: float,
-            msg: str,
-            processor_types: tuple[FreeWiliProcessorType],
-        ):
-            start = time.time()
-            elapsed = time.time() - start
-            while elapsed <= bootloader_delay_sec:
-                elapsed = time.time() - start
-                # Update status
-                for device in devices:
-                    if device.processor_type in processor_types:
-                        update_progress(
-                            tx_queue,
-                            device,
-                            f"{msg}: Waiting {bootloader_delay_sec - elapsed:.1f} second(s)",
-                            ((bootloader_delay_sec - elapsed) / bootloader_delay_sec)
-                            * 100.0,
-                        )
-                try:
-                    # check if we need to quit
-                    value: updater.WorkerCommand = rx_queue.get_nowait()
-                    if value == updater.WorkerCommandType.Quit:
-                        for device in devices:
-                            update_progress(tx_queue, device, "Done", 100)
-                        return
-                except Empty:
-                    pass
-                time.sleep(0.250)
-            # Update status
-            for device in devices:
-                if device.processor_type in processor_types:
-                    update_progress(tx_queue, device, f"{msg}: Done waiting", 100)
-
-        bootloader_delay_sec = 5.0
         devices: tuple[DeviceInfo] = kwargs["devices"]
-        # Lets make sure everything is in UF2 bootloader first
-        try:
-            if not self.enter_uf2(tx_queue, rx_queue, *args, **kwargs):
-                return
-        except Exception as _ex:
-            return
+        main_uf2_fname: str = kwargs["main_uf2_fname"]
+        display_uf2_fname: str = kwargs["display_uf2_fname"]
+        main_enabled: bool = kwargs["main_enabled"]
+        display_enabled: bool = kwargs["display_enabled"]
 
-        _wait(
-            devices,
-            bootloader_delay_sec,
-            "UF2 driver settle",
-            (FreeWiliProcessorType.Main, FreeWiliProcessorType.Display),
-        )
-
-        fw_devices = FreeWili.find_all()
-        # Finally, lets reflash
-        main_threads = []
-        display_threads = []
-        for fw_device in fw_devices:
-            for i, device in enumerate(devices):
-                # Only match the device we want to reflash
-                if (
-                    fw_device.device.serial != device.serial
-                    and fw_device.main.kind != USBDeviceType.MassStorage
-                ):
-                    continue
-                if device.processor_type is FreeWiliProcessorType.Main:
-                    t = Thread(
-                        target=update_uf2,
-                        args=(
-                            kwargs["main_uf2_fname"],
-                            fw_device.main.paths[0],
-                            i,
-                            device,
-                            tx_queue,
-                        ),
-                    )
-                    main_threads.append(t)
-                elif device.processor_type is FreeWiliProcessorType.Display:
-                    t = Thread(
-                        target=update_uf2,
-                        args=(
-                            kwargs["display_uf2_fname"],
-                            fw_device.display.paths[0],
-                            i,
-                            device,
-                            tx_queue,
-                        ),
-                    )
-                    display_threads.append(t)
-
-        for t in display_threads:
-            t.start()
-        for t in display_threads:
-            t.join()
-
-        _wait(
-            devices,
-            bootloader_delay_sec,
-            "Display reboot",
-            (FreeWiliProcessorType.Main,),
-        )
-
-        for t in main_threads:
-            t.start()
-        for t in main_threads:
-            t.join()
-
-        _wait(
-            devices,
-            bootloader_delay_sec,
-            "Driver settle",
-            (FreeWiliProcessorType.Main, FreeWiliProcessorType.Display),
-        )
-
+        bl_devices: list[updater.FreeWiliBootloader] = []
         for device in devices:
-            update_progress(tx_queue, device, "Done.", 100)
+            bl_devices.append(updater.FreeWiliBootloader(device, tx_queue))
+
+        if display_enabled:
+            threads = []
+            for i, bl_device in enumerate(bl_devices):
+                t = Thread(
+                    target=bl_device.flash_firmware,
+                    args=(
+                        display_uf2_fname,
+                        FreeWiliProcessorType.Display,
+                        i,
+                    ),
+                )
+                t.start()
+                threads.append(t)
+
+            for thread in threads:
+                thread.join()
+
+        if main_enabled:
+            threads = []
+            for i, bl_device in enumerate(bl_devices):
+                t = Thread(
+                    target=bl_device.flash_firmware,
+                    args=(
+                        main_uf2_fname,
+                        FreeWiliProcessorType.Main,
+                        i,
+                    ),
+                )
+                t.start()
+                threads.append(t)
+
+            for thread in threads:
+                thread.join()
 
     def _parse_queue(self, queue: Queue, max_count=50):
         for _ in range(max_count):
             try:
                 cmd = queue.get_nowait()
-                if cmd.command_type == updater.WorkerCommandType.Progress:
-                    self.update_device_status(*cmd.value)
-                    print(*cmd.value)
-                    QtCore.QCoreApplication.processEvents()
-                elif cmd.command_type == updater.WorkerCommandType.Error:
-                    self.update_device_status(cmd.value[0], cmd.value[1], 0)
-                elif cmd.command_type == updater.WorkerCommandType.NewDevice:
-                    self.create_new_device() # TODO
+                if isinstance(cmd, updater.FreeWiliBootloaderMessage):
+                    print(cmd)
+                    self.update_device_status(cmd)
                 else:
                     print(cmd)
                 QtCore.QCoreApplication.processEvents()
             except Empty:
                 break
-    
+
     @QtCore.Slot()
     def refresh_worker_started(self):
         # self.button.setEnabled(False)
@@ -610,7 +398,9 @@ class MainWidget(QtWidgets.QWidget):
 
     @QtCore.Slot()
     def uf2_worker_started(self):
-        # self.button.setEnabled(False)
+        self.ui.groupBoxMainUf2.setEnabled(False)
+        self.ui.groupBoxDisplayUf2.setEnabled(False)
+        self.ui.pushButtonReflash.setEnabled(False)
         self.ui.pushButtonEnterUf2.setText("Running...")
         self.uf2_timer = QtCore.QTimer()
         self.uf2_timer.setInterval(3)
@@ -620,6 +410,9 @@ class MainWidget(QtWidgets.QWidget):
 
     @QtCore.Slot()
     def uf2_worker_complete(self):
+        self.ui.groupBoxMainUf2.setEnabled(True)
+        self.ui.groupBoxDisplayUf2.setEnabled(True)
+        self.ui.pushButtonReflash.setEnabled(True)
         self.ui.pushButtonEnterUf2.setEnabled(True)
         self.ui.pushButtonEnterUf2.setText(self.uf2_button_text)
         tx_queue, _ = self.worker.get_job_queues()
@@ -629,7 +422,9 @@ class MainWidget(QtWidgets.QWidget):
 
     @QtCore.Slot()
     def reflash_worker_started(self):
-        # self.button.setEnabled(False)
+        self.ui.groupBoxMainUf2.setEnabled(False)
+        self.ui.groupBoxDisplayUf2.setEnabled(False)
+        self.ui.pushButtonEnterUf2.setEnabled(False)
         self.ui.pushButtonReflash.setText("Running...")
         self.reflash_timer = QtCore.QTimer()
         self.reflash_timer.setInterval(3)
@@ -639,6 +434,9 @@ class MainWidget(QtWidgets.QWidget):
 
     @QtCore.Slot()
     def reflash_worker_complete(self):
+        self.ui.groupBoxMainUf2.setEnabled(True)
+        self.ui.groupBoxDisplayUf2.setEnabled(True)
+        self.ui.pushButtonReflash.setEnabled(True)
         self.ui.pushButtonEnterUf2.setEnabled(True)
         self.ui.pushButtonReflash.setText(self.reflash_button_text)
         tx_queue, _ = self.worker.get_job_queues()
@@ -656,17 +454,18 @@ class MainWidget(QtWidgets.QWidget):
         tx_queue, _ = self.worker.get_job_queues()
         self._parse_queue(tx_queue)
 
-    def update_device_status(
-        self, device: DeviceInfo, msg: str, progress: float
-    ) -> None:
+    def update_device_status(self, msg: updater.FreeWiliBootloaderMessage) -> None:
         model = self.ui.treeViewDevices.model()
         if not model:
             return
         for i in range(model.rowCount()):
-            processor_type = model.item(i, 0).data(QtCore.Qt.DisplayRole)
-            serial = model.item(i, 1).data(QtCore.Qt.DisplayRole)
-            if processor_type == device.processor_type.name and serial == device.serial:
+            serial = model.item(i, self.header_labels.index("Name")).data(
+                QtCore.Qt.DisplayRole
+            )
+            if serial == msg.serial:
                 model.setData(
-                    model.index(i, 7), f"{msg} {progress:.1f}%", QtCore.Qt.DisplayRole
+                    model.index(i, self.header_labels.index("Status")),
+                    f"{msg.msg} {msg.progress if msg.progress else 0:.1f}% {msg.success}",
+                    QtCore.Qt.DisplayRole,
                 )
                 break
