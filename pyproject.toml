@@ -22,7 +22,8 @@ dev = [
 [tool.mypy]
 ignore_missing_imports = true
 disallow_untyped_defs = true
-disallow_untyped_calls = true
+disallow_untyped_calls = false
+exclude = ["src/ui/main.py",]
 
 [tool.ruff]
 line-length = 120

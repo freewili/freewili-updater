@@ -1,107 +1,22 @@
-import dataclasses
-import enum
-from pathlib import Path
-import platform
 from queue import Empty, Queue
-import subprocess
 from threading import Thread
-import threading
-import time
-from result import Err, Ok
-from ui.main import Ui_FormMain
+from typing import Any
 
-from PySide6 import QtWidgets, QtCore, QtGui
 from freewili import FreeWili
 from freewili.types import FreeWiliProcessorType
-from pyfwfinder import USBDeviceType
+from PySide6 import QtCore, QtGui, QtWidgets
 
 import updater
-
-
-@dataclasses.dataclass(frozen=True)
-class DeviceInfo:
-    processor_type: FreeWiliProcessorType
-    serial: str
-    is_uf2_mode: bool
-
-
-@dataclasses.dataclass(frozen=True)
-class NewFreeWiliDevice:
-    device: FreeWili
-    main_app_version: str
-    display_app_version: str
-
-
-def update_progress(tx_queue: Queue, device: DeviceInfo, msg: str, progress: float) -> None:
-    tx_queue.put(
-        updater.WorkerCommand.new(
-            updater.WorkerCommandType.Progress,
-            (device, msg, progress),
-        )
-    )
-
-
-def send_file(src, dst, index, device, queue):
-    # time.sleep(index)
-    try:
-        fsize_bytes = Path(src).stat().st_size
-
-        with open(str(src), "rb") as fsrc, open(str(dst), "wb") as fdst:
-            written_bytes = 0
-            last_written_bytes = 0
-            start = time.time()
-            last_update = start
-            while True:
-                buf = fsrc.read(1024)  # Read 1024 bytes at a time
-                if not buf:
-                    # Randomize the end so all the drivers don't populate at the same time
-                    time.sleep(index)
-                    break
-                written_bytes += 1024
-                fdst.write(buf)
-                fdst.flush()
-                if platform.system() == "Linux":
-                    ret = subprocess.call(f"sync -d {dst}", shell=True)
-                    if ret != 0:
-                        print(ret)
-                if time.time() - last_update >= 1.0 and written_bytes != last_written_bytes:
-                    update_progress(
-                        queue,
-                        device,
-                        f"Wrote {written_bytes / 1000:.0f}KB of {fsize_bytes / 1000:.0f}KB...",
-                        (written_bytes / fsize_bytes) * 100.0,
-                    )
-                    last_update = time.time()
-                    last_written_bytes = written_bytes
-            # print()
-            fdst.flush()
-            end = time.time()
-            update_progress(
-                queue,
-                device,
-                f"Wrote {written_bytes / 1000:.1f}KB in {end - start:.1f} seconds...",
-                100,
-            )
-    except Exception as ex:
-        print(ex, src, dst, index, device)
-        queue.put(
-            updater.WorkerCommand.new(
-                updater.WorkerCommandType.Error,
-                (device, str(ex)),
-            )
-        )
-
-
-def update_uf2(src_fname: str, dst_path: str, index: int, device: DeviceInfo, queue: Queue):
-    dst = Path(dst_path) / Path(src_fname).name
-    send_file(src_fname, dst, index, device, queue)
+from ui.main import Ui_FormMain
 
 
 class MainWidget(QtWidgets.QWidget):
     def __init__(self, parent: QtWidgets.QWidget | None = None):
         QtWidgets.QWidget.__init__(self, parent)
-        self.ui = Ui_FormMain()
+        self.ui: Ui_FormMain = Ui_FormMain()
         self.ui.setupUi(self)
+
+        self.worker: updater.Worker
 
         settings = QtCore.QSettings()
 
@@ -122,12 +37,15 @@ class MainWidget(QtWidgets.QWidget):
         self.restoreGeometry(settings.value("WindowGeometry", self.saveGeometry()))
         # self.restoreState(settings.value("WindowState", self.saveState()))
 
-    def closeEvent(self, event):
+    @QtCore.Slot()
+    def closeEvent(self, event: QtCore.QEvent) -> None:  # noqa: N802
+        """Window close event handler."""
         settings = QtCore.QSettings()
         settings.setValue("WindowGeometry", self.saveGeometry())
 
     @QtCore.Slot()
-    def on_toolButtonMainUf2Browse_clicked(self):
+    def on_toolButtonMainUf2Browse_clicked(self) -> None:  # noqa: N802
+        """Button click handler."""
         fname, filter_type = QtWidgets.QFileDialog.getOpenFileName(
             self,
             "Open Main Firmware",
@@ -140,7 +58,8 @@ class MainWidget(QtWidgets.QWidget):
             self.ui.lineEditMainUf2.setText(fname)
 
     @QtCore.Slot()
-    def on_toolButtonDisplayUf2Browse_clicked(self):
+    def on_toolButtonDisplayUf2Browse_clicked(self) -> None:  # noqa: N802
+        """Button click handler."""
         fname, filter_type = QtWidgets.QFileDialog.getOpenFileName(
             self, "Open Display Firmware", ".", "UF2 Files (*.uf2);;All Files (*.*)"
         )
@@ -150,6 +69,7 @@ class MainWidget(QtWidgets.QWidget):
             self.ui.lineEditDisplayUf2.setText(fname)
 
     def add_device(self, model: QtGui.QStandardItemModel, freewili: FreeWili) -> None:
+        """Add a FreeWili device to the treeview."""
         assert isinstance(model, QtGui.QStandardItemModel)
         assert isinstance(freewili, FreeWili)
 
@@ -186,7 +106,8 @@ class MainWidget(QtWidgets.QWidget):
         model.appendRow(parent_item)
 
     @QtCore.Slot()
-    def on_pushButtonRefresh_clicked(self):
+    def on_pushButtonRefresh_clicked(self) -> None:  # noqa: N802
+        """Button click handler."""
         model = self.ui.treeViewDevices.model()
         if not model:
             self.ui.treeViewDevices.setModel(QtGui.QStandardItemModel())
@@ -204,7 +125,8 @@ class MainWidget(QtWidgets.QWidget):
         self.ui.groupBox.setTitle(f"Devices ({len(fw_devices)})")
 
     @QtCore.Slot()
-    def on_pushButtonReflash_clicked(self):
+    def on_pushButtonReflash_clicked(self) -> None:  # noqa: N802
+        """Button click handler."""
         if self.ui.pushButtonEnterUf2.text() == "Running...":
             self.worker.quit()
             return
@@ -239,7 +161,8 @@ class MainWidget(QtWidgets.QWidget):
         QtCore.QThreadPool.globalInstance().start(self.worker)
 
     @QtCore.Slot()
-    def on_pushButtonEnterUf2_clicked(self):
+    def on_pushButtonEnterUf2_clicked(self) -> None:  # noqa: N802
+        """Button click handler."""
         if self.ui.pushButtonEnterUf2.text() == "Running...":
             self.worker.quit()
             return
@@ -272,8 +195,9 @@ class MainWidget(QtWidgets.QWidget):
         QtCore.QThreadPool.globalInstance().start(self.worker)
 
     @classmethod
-    def run_enter_uf2(self, tx_queue: Queue, rx_queue: Queue, *args, **kwargs) -> None:
-        devices: tuple[DeviceInfo] = kwargs["devices"]
+    def run_enter_uf2(cls, tx_queue: Queue, rx_queue: Queue, *args: Any, **kwargs: Any) -> None:
+        """Worker method to enter UF2 bootloader on Free-Wili devices."""
+        devices: tuple[FreeWili] = kwargs["devices"]
         main_enabled: bool = kwargs["main_enabled"]
         display_enabled: bool = kwargs["display_enabled"]
 
@@ -308,8 +232,9 @@ class MainWidget(QtWidgets.QWidget):
                 thread.join()
 
     @classmethod
-    def run_reflash(self, tx_queue: Queue, rx_queue: Queue, *args, **kwargs) -> None:
-        devices: tuple[DeviceInfo] = kwargs["devices"]
+    def run_reflash(cls, tx_queue: Queue, rx_queue: Queue, *args: Any, **kwargs: Any) -> None:
+        """Worker method to reflash firmware on Free-Wili devices."""
+        devices: tuple[FreeWili] = kwargs["devices"]
         main_uf2_fname: str = kwargs["main_uf2_fname"]
         display_uf2_fname: str = kwargs["display_uf2_fname"]
         main_enabled: bool = kwargs["main_enabled"]
@@ -353,7 +278,7 @@ class MainWidget(QtWidgets.QWidget):
             for thread in threads:
                 thread.join()
 
-    def _parse_queue(self, queue: Queue, max_count=50):
+    def _parse_queue(self, queue: Queue, max_count: int = 50) -> None:
         for _ in range(max_count):
             try:
                 cmd = queue.get_nowait()
@@ -367,26 +292,8 @@ class MainWidget(QtWidgets.QWidget):
                 break
 
     @QtCore.Slot()
-    def refresh_worker_started(self):
-        # self.button.setEnabled(False)
-        self.ui.pushButtonRefresh.setText("Running...")
-        self.refresh_timer = QtCore.QTimer()
-        self.refresh_timer.setInterval(3)
-        self.refresh_timer.setSingleShot(False)
-        self.refresh_timer.timeout.connect(self.refresh_timer_timeout)
-        self.refresh_timer.start()
-
-    @QtCore.Slot()
-    def refresh_worker_complete(self):
-        self.ui.pushButtonRefresh.setEnabled(True)
-        self.ui.pushButtonRefresh.setText(self.refresh_button_text)
-        tx_queue, _ = self.worker.get_job_queues()
-        self._parse_queue(tx_queue)
-        del self.worker
-        self.refresh_timer.stop()
-
-    @QtCore.Slot()
-    def uf2_worker_started(self):
+    def uf2_worker_started(self) -> None:
+        """Signal for UF2 bootloader worker."""
         self.ui.groupBoxMainUf2.setEnabled(False)
         self.ui.groupBoxDisplayUf2.setEnabled(False)
         self.ui.pushButtonReflash.setEnabled(False)
@@ -394,11 +301,12 @@ class MainWidget(QtWidgets.QWidget):
         self.uf2_timer = QtCore.QTimer()
         self.uf2_timer.setInterval(3)
         self.uf2_timer.setSingleShot(False)
-        self.uf2_timer.timeout.connect(self.uf2_timer_timeout)
+        self.uf2_timer.timeout.connect(self._uf2_timer_timeout)
         self.uf2_timer.start()
 
     @QtCore.Slot()
-    def uf2_worker_complete(self):
+    def uf2_worker_complete(self) -> None:
+        """Signal for UF2 bootloader worker."""
         self.ui.groupBoxMainUf2.setEnabled(True)
         self.ui.groupBoxDisplayUf2.setEnabled(True)
         self.ui.pushButtonReflash.setEnabled(True)
@@ -410,7 +318,8 @@ class MainWidget(QtWidgets.QWidget):
         self.uf2_timer.stop()
 
     @QtCore.Slot()
-    def reflash_worker_started(self):
+    def reflash_worker_started(self) -> None:
+        """Signal for reflash firmware worker."""
         self.ui.groupBoxMainUf2.setEnabled(False)
         self.ui.groupBoxDisplayUf2.setEnabled(False)
         self.ui.pushButtonEnterUf2.setEnabled(False)
@@ -418,11 +327,12 @@ class MainWidget(QtWidgets.QWidget):
         self.reflash_timer = QtCore.QTimer()
         self.reflash_timer.setInterval(3)
         self.reflash_timer.setSingleShot(False)
-        self.reflash_timer.timeout.connect(self.reflash_timer_timeout)
+        self.reflash_timer.timeout.connect(self._reflash_timer_timeout)
         self.reflash_timer.start()
 
     @QtCore.Slot()
-    def reflash_worker_complete(self):
+    def reflash_worker_complete(self) -> None:
+        """Signal for reflash firmware worker."""
         self.ui.groupBoxMainUf2.setEnabled(True)
         self.ui.groupBoxDisplayUf2.setEnabled(True)
         self.ui.pushButtonReflash.setEnabled(True)
@@ -434,16 +344,17 @@ class MainWidget(QtWidgets.QWidget):
         self.reflash_timer.stop()
 
     @QtCore.Slot()
-    def uf2_timer_timeout(self):
+    def _uf2_timer_timeout(self) -> None:
         tx_queue, _ = self.worker.get_job_queues()
         self._parse_queue(tx_queue)
 
     @QtCore.Slot()
-    def reflash_timer_timeout(self):
+    def _reflash_timer_timeout(self) -> None:
         tx_queue, _ = self.worker.get_job_queues()
         self._parse_queue(tx_queue)
 
     def update_device_status(self, msg: updater.FreeWiliBootloaderMessage) -> None:
+        """Update the status field in the treeview."""
         model = self.ui.treeViewDevices.model()
         if not model:
             return
