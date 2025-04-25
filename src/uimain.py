@@ -18,8 +18,10 @@ class ProgressDataType(enum.Enum):
 
 class ProgressDelegate(QtWidgets.QStyledItemDelegate):
     """Custom Delegate displaying a Progress bar."""
+    # def sizeHint(self, option: Any, index: Any):
+    #     return QtCore.QSize(400, 25)
 
-    def paint(self, painter, option, index):
+    def paint(self, painter: Any, option: Any, index: Any) -> Any:
         """Draw the actual progress bar."""
         progress = index.data(ProgressDataType.Progress.value)
         if not progress:
@@ -28,20 +30,53 @@ class ProgressDelegate(QtWidgets.QStyledItemDelegate):
         if not text:
             text = ""
 
-        opt = QtWidgets.QStyleOptionProgressBar()
-        opt.rect = option.rect
-        opt.minimum = 0
-        if progress < 0:
-            opt.maximum = 0
-            opt.text = f"{text}"
+        # Draw background (for selection, etc.)
+        if option.state & QtWidgets.QStyle.StateFlag.State_Selected:
+            painter.fillRect(option.rect, option.palette.highlight())
+
+        # Draw the progress bar manually
+        rect = option.rect #.adjusted(4, 6, -4, -6)  # tweak padding
+        radius = 0
+
+        # Background bar
+        painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
+        painter.setPen(QtCore.Qt.PenStyle.NoPen)
+        painter.setBrush(option.palette.base())
+        painter.drawRoundedRect(rect, radius, radius)
+
+        # Progress fill
+        progress_width = int((progress / 100) * rect.width())
+        filled_rect = QtCore.QRect(rect.left(), rect.top(), progress_width, rect.height())
+        painter.setBrush(option.palette.highlight())
+        painter.drawRoundedRect(filled_rect, radius, radius)
+
+        # Draw the text
+        painter.setPen(option.palette.highlightedText().color())# if option.state & QtWidgets.QStyle.StateFlag.State_Selected else QtCore.Qt.GlobalColor.black)
+        if progress > 0:
+            text = f"{text} {progress}%"
         else:
-            opt.maximum = 100
-            opt.text = f"{text} {progress:.1f}%"
-        opt.progress = float(progress)
-        opt.textVisible = True
-        opt.state |= QtWidgets.QStyle.StateFlag.State_Horizontal
-        style = option.widget.style() if option.widget is not None else QtWidgets.QApplication.style()
-        style.drawControl(QtWidgets.QStyle.ControlElement.CE_ProgressBar, opt, painter, option.widget)
+            text = f"{text}"
+        painter.drawText(option.rect, QtCore.Qt.AlignmentFlag.AlignCenter, text)
+        # opt = QtWidgets.QStyleOptionProgressBar()
+        # opt.state = QtWidgets.QStyle.State_Enabled
+        # opt.direction = option.direction
+        # opt.fontMetrics = option.fontMetrics
+        # opt.rect = option.rect
+        # opt.palette = option.palette
+        # opt.minimum = 0
+        # if progress < 0:
+        #     opt.maximum = 0
+        #     opt.text = f"{text}"
+        # else:
+        #     opt.maximum = 100
+        #     opt.text = f"{text} {progress:.1f}%"
+        # opt.progress = float(progress)
+        # opt.textVisible = True
+
+
+        # opt.state |= QtWidgets.QStyle.StateFlag.State_Horizontal
+        # style = option.widget.style() if option.widget is not None else QtWidgets.QApplication.style()
+        # style.drawControl(QtWidgets.QStyle.ControlElement.CE_ProgressBar, opt, painter, option.widget)
 
 
 class MainWidget(QtWidgets.QWidget):
