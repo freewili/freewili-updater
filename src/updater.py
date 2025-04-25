@@ -99,7 +99,7 @@ class FreeWiliBootloader:
     def quit(self):
         self._quit = True
 
-    def _message(self, msg: str, success: bool, progress: None | float = None):
+    def _message(self, msg: str, success: bool, progress: None | float = -1):
         assert isinstance(msg, str)
         assert isinstance(success, bool)
         if progress is not None:
@@ -162,21 +162,21 @@ class FreeWiliBootloader:
             self._message("Device no longer exists", False)
             return False
 
-        self._message("Entering UF2 bootloader...", True)
+        self._message(f"Entering UF2 bootloader on {processor_type.name}...", True)
         try:
             # We might already be in UF2 bootloader, lets check here
             usb_device = self.freewili.get_usb_device(processor_type)
             if usb_device and usb_device.kind == USBDeviceType.MassStorage:
-                self._message("Entered UF2 bootloader", True)
+                self._message(f"{processor_type.name} entered UF2 bootloader", True)
                 return True
             self.freewili.get_serial_from(processor_type).expect(
                 f"Failed to get serial on processor {processor_type.name}"
             ).reset_to_uf2_bootloader().expect(f"Failed to enter UF2 bootloader on {processor_type.name}")
             self._message("Waiting for device driver...", True)
             if not self._wait_for_device((USBDeviceType.MassStorage,), processor_type):
-                self._message("Device no longer exists", False)
+                self._message(f"{processor_type.name} no longer exists", False)
                 return False
-            self._message("Entered UF2 bootloader", True)
+            self._message(f"{processor_type.name} entered UF2 bootloader", True)
             return True
         except UnwrapError as ex:
             self._message(str(ex), False)
@@ -213,7 +213,7 @@ class FreeWiliBootloader:
         if not path:
             self._message("Failed to find drive path", False)
             return False
-        self._message(f"Uploading {uf2_fname.name} to {path}...", True)
+        self._message(f"{processor_type.name} Uploading {uf2_fname.name} to {path}...", True)
 
         # update our destination path with the filename
         path = path / uf2_fname.name
@@ -245,7 +245,7 @@ class FreeWiliBootloader:
                             print(ex)
                     if time.time() - last_update >= 1.0 and written_bytes != last_written_bytes:
                         self._message(
-                            f"Wrote {written_bytes / 1000:.0f}KB of {fsize_bytes / 1000:.0f}KB...",
+                            f"{processor_type.name} {written_bytes / 1000:.0f}KB of {fsize_bytes / 1000:.0f}KB...",
                             True,
                             (written_bytes / fsize_bytes) * 100.0,
                         )
@@ -254,7 +254,7 @@ class FreeWiliBootloader:
                 fdst.flush()
             end = time.time()
             self._message(
-                f"Wrote {written_bytes / 1000:.1f}KB in {end - start:.1f} seconds...",
+                f"Complete: {processor_type.name} {written_bytes / 1000:.1f}KB in {end - start:.1f} seconds...",
                 True,
                 100.0,
             )

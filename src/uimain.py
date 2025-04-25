@@ -1,3 +1,4 @@
+import enum
 from queue import Empty, Queue
 from threading import Thread
 from typing import Any
@@ -8,6 +9,39 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 import updater
 from ui.main import Ui_FormMain
+
+
+class ProgressDataType(enum.Enum):
+    Progress = QtCore.Qt.ItemDataRole.UserRole + 1000
+    Text = QtCore.Qt.ItemDataRole.DisplayRole
+
+
+class ProgressDelegate(QtWidgets.QStyledItemDelegate):
+    """Custom Delegate displaying a Progress bar."""
+
+    def paint(self, painter, option, index):
+        """Draw the actual progress bar."""
+        progress = index.data(ProgressDataType.Progress.value)
+        if not progress:
+            progress = 0.0
+        text = index.data(ProgressDataType.Text.value)
+        if not text:
+            text = ""
+
+        opt = QtWidgets.QStyleOptionProgressBar()
+        opt.rect = option.rect
+        opt.minimum = 0
+        if progress < 0:
+            opt.maximum = 0
+            opt.text = f"{text}"
+        else:
+            opt.maximum = 100
+            opt.text = f"{text} {progress:.1f}%"
+        opt.progress = float(progress)
+        opt.textVisible = True
+        opt.state |= QtWidgets.QStyle.StateFlag.State_Horizontal
+        style = option.widget.style() if option.widget is not None else QtWidgets.QApplication.style()
+        style.drawControl(QtWidgets.QStyle.ControlElement.CE_ProgressBar, opt, painter, option.widget)
 
 
 class MainWidget(QtWidgets.QWidget):
@@ -26,6 +60,8 @@ class MainWidget(QtWidgets.QWidget):
             "Kind",
             "Serial",
         )
+        self.progress_delegate = ProgressDelegate(self.ui.treeViewDevices)
+        self.ui.treeViewDevices.setItemDelegateForColumn(self.header_labels.index("Status"), self.progress_delegate)
 
         self.ui.lineEditMainUf2.setText(settings.value("MainUF2Path", ""))
         self.ui.lineEditDisplayUf2.setText(settings.value("DisplayUF2Path", ""))
@@ -68,7 +104,7 @@ class MainWidget(QtWidgets.QWidget):
             settings.setValue("DisplayUF2Path", fname)
             self.ui.lineEditDisplayUf2.setText(fname)
 
-    def add_device(self, model: QtGui.QStandardItemModel, freewili: FreeWili) -> None:
+    def add_device(self, model: QtGui.QStandardItemModel, freewili: FreeWili, statuses: dict) -> None:
         """Add a FreeWili device to the treeview."""
         assert isinstance(model, QtGui.QStandardItemModel)
         assert isinstance(freewili, FreeWili)
@@ -103,7 +139,12 @@ class MainWidget(QtWidgets.QWidget):
                 ]
             )
 
-        model.appendRow(parent_item)
+        parent_progress = QtGui.QStandardItem()
+        if freewili.device.serial in statuses:
+            progress, text = statuses[freewili.device.serial]
+            parent_progress.setData(progress, ProgressDataType.Progress.value)
+            parent_progress.setData(text, ProgressDataType.Text.value)
+        model.appendRow([parent_item, parent_progress])
 
     @QtCore.Slot()
     def on_pushButtonRefresh_clicked(self) -> None:  # noqa: N802
@@ -112,16 +153,25 @@ class MainWidget(QtWidgets.QWidget):
         if not model:
             self.ui.treeViewDevices.setModel(QtGui.QStandardItemModel())
             model = self.ui.treeViewDevices.model()
+        # Save the status message
+        saved_status = {}
+        for i in range(model.rowCount()):
+            serial = model.item(i, self.header_labels.index("Name")).data(QtCore.Qt.DisplayRole)
+            status_progress = model.item(i, self.header_labels.index("Status")).data(ProgressDataType.Progress.value)
+            status_text = model.item(i, self.header_labels.index("Status")).data(ProgressDataType.Text.value)
+            saved_status[serial] = (status_progress, status_text)
+
         model.clear()
         model.setHorizontalHeaderLabels(self.header_labels)
         fw_devices = FreeWili.find_all()
 
         for fw_device in fw_devices:
-            self.add_device(model, fw_device)
+            self.add_device(model, fw_device, saved_status)
 
         self.ui.treeViewDevices.expandAll()
         for x in range(model.columnCount()):
             self.ui.treeViewDevices.resizeColumnToContents(x)
+        self.ui.treeViewDevices.setColumnWidth(self.header_labels.index("Status"), 500)
         self.ui.groupBox.setTitle(f"Devices ({len(fw_devices)})")
 
     @QtCore.Slot()
@@ -133,16 +183,26 @@ class MainWidget(QtWidgets.QWidget):
         model = self.ui.treeViewDevices.model()
         if not model:
             return
+        if (
+            QtWidgets.QMessageBox.warning(
+                self,
+                "Reflashing",
+                "Do not disconnect the Free-Wili(s) or interact with the drives while flashing!",
+                QtWidgets.QMessageBox.StandardButton.Ok | QtWidgets.QMessageBox.StandardButton.Cancel,
+                QtWidgets.QMessageBox.StandardButton.Cancel,
+            )
+            != QtWidgets.QMessageBox.StandardButton.Ok
+        ):
+            return
         fw_devices = FreeWili.find_all()
         selected = self.ui.treeViewDevices.selectionModel().selectedRows()
         devices = []
-        for i, item in enumerate(selected):
+        for index in selected:
             # We don't care about the children rows
-            if item.parent() and item.parent() == model.invisibleRootItem():
+            item = model.itemFromIndex(index)
+            if not item.hasChildren():
                 continue
-            if not model.item(item.row(), 0):
-                continue
-            serial = model.item(item.row(), 0).data(QtCore.Qt.DisplayRole)
+            serial = model.item(index.row(), 0).data(QtCore.Qt.DisplayRole)
             for fw_device in fw_devices:
                 if fw_device.device.serial == serial:
                     devices.append(fw_device)
@@ -170,16 +230,26 @@ class MainWidget(QtWidgets.QWidget):
         model = self.ui.treeViewDevices.model()
         if not model:
             return
+        if (
+            QtWidgets.QMessageBox.warning(
+                self,
+                "Enter UF2 Bootloader",
+                "Do not disconnect the Free-Wili(s).\nWARNING: Firmware needs to be flashed to exit this mode.",
+                QtWidgets.QMessageBox.StandardButton.Ok | QtWidgets.QMessageBox.StandardButton.Cancel,
+                QtWidgets.QMessageBox.StandardButton.Cancel,
+            )
+            != QtWidgets.QMessageBox.StandardButton.Ok
+        ):
+            return
         fw_devices = FreeWili.find_all()
         selected = self.ui.treeViewDevices.selectionModel().selectedRows()
         devices = []
-        for i, item in enumerate(selected):
+        for index in selected:
             # We don't care about the children rows
-            if item.parent() and item.parent() == model.invisibleRootItem():
+            item = model.itemFromIndex(index)
+            if not item.hasChildren():
                 continue
-            if not model.item(item.row(), 0):
-                continue
-            serial = model.item(item.row(), 0).data(QtCore.Qt.DisplayRole)
+            serial = model.item(index.row(), 0).data(QtCore.Qt.DisplayRole)
             for fw_device in fw_devices:
                 if fw_device.device.serial == serial:
                     devices.append(fw_device)
@@ -316,6 +386,7 @@ class MainWidget(QtWidgets.QWidget):
         self._parse_queue(tx_queue)
         del self.worker
         self.uf2_timer.stop()
+        self.on_pushButtonRefresh_clicked()
 
     @QtCore.Slot()
     def reflash_worker_started(self) -> None:
@@ -342,6 +413,7 @@ class MainWidget(QtWidgets.QWidget):
         self._parse_queue(tx_queue)
         del self.worker
         self.reflash_timer.stop()
+        self.on_pushButtonRefresh_clicked()
 
     @QtCore.Slot()
     def _uf2_timer_timeout(self) -> None:
@@ -363,7 +435,12 @@ class MainWidget(QtWidgets.QWidget):
             if serial == msg.serial:
                 model.setData(
                     model.index(i, self.header_labels.index("Status")),
-                    f"{msg.msg} {msg.progress if msg.progress else 0:.1f}% {msg.success}",
-                    QtCore.Qt.DisplayRole,
+                    f"{msg.msg} {'' if msg.success else 'Failed'}",
+                    ProgressDataType.Text.value,
+                )
+                model.setData(
+                    model.index(i, self.header_labels.index("Status")),
+                    msg.progress,
+                    ProgressDataType.Progress.value,
                 )
                 break
