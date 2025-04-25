@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>710</width>
-    <height>545</height>
+    <width>743</width>
+    <height>558</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -19,7 +19,21 @@
      <property name="title">
       <string>Devices</string>
      </property>
-     <layout class="QGridLayout" name="gridLayout_4">
+     <layout class="QGridLayout" name="gridLayout_4" rowstretch="1,0,0,0">
+      <item row="3" column="1">
+       <widget class="QPushButton" name="pushButtonEnterUf2">
+        <property name="text">
+         <string>&amp;Enter UF2 on Selected</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="0">
+       <widget class="QPushButton" name="pushButtonReflash">
+        <property name="text">
+         <string>&amp;Reflash Selected</string>
+        </property>
+       </widget>
+      </item>
       <item row="0" column="0" colspan="2">
        <widget class="QTreeView" name="treeViewDevices">
         <property name="selectionMode">
@@ -35,70 +49,87 @@
        </widget>
       </item>
       <item row="2" column="0" colspan="2">
-       <widget class="QGroupBox" name="groupBoxFirmware">
-        <property name="title">
-         <string>Firmware</string>
+       <widget class="QTabWidget" name="tabWidget">
+        <property name="currentIndex">
+         <number>0</number>
         </property>
-        <layout class="QGridLayout" name="gridLayout">
-         <item row="0" column="0">
-          <widget class="QGroupBox" name="groupBoxMainUf2">
-           <property name="title">
-            <string>Main UF2</string>
-           </property>
-           <property name="checkable">
-            <bool>true</bool>
-           </property>
-           <layout class="QGridLayout" name="gridLayout_2">
-            <item row="0" column="0">
-             <widget class="QLineEdit" name="lineEditMainUf2"/>
-            </item>
-            <item row="0" column="1">
-             <widget class="QToolButton" name="toolButtonMainUf2Browse">
-              <property name="text">
-               <string>...</string>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </widget>
-         </item>
-         <item row="1" column="0">
-          <widget class="QGroupBox" name="groupBoxDisplayUf2">
-           <property name="title">
-            <string>Display UF2</string>
-           </property>
-           <property name="checkable">
-            <bool>true</bool>
-           </property>
-           <layout class="QGridLayout" name="gridLayout_3">
-            <item row="0" column="0">
-             <widget class="QLineEdit" name="lineEditDisplayUf2"/>
-            </item>
-            <item row="0" column="1">
-             <widget class="QToolButton" name="toolButtonDisplayUf2Browse">
-              <property name="text">
-               <string>...</string>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </widget>
-         </item>
-        </layout>
-       </widget>
-      </item>
-      <item row="3" column="0">
-       <widget class="QPushButton" name="pushButtonReflash">
-        <property name="text">
-         <string>&amp;Reflash Selected</string>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="1">
-       <widget class="QPushButton" name="pushButtonEnterUf2">
-        <property name="text">
-         <string>&amp;Enter UF2 on Selected</string>
-        </property>
+        <widget class="QWidget" name="tabFirmware">
+         <attribute name="title">
+          <string>Firmware</string>
+         </attribute>
+         <layout class="QGridLayout" name="gridLayout_6">
+          <item row="0" column="0">
+           <widget class="QGroupBox" name="groupBoxFirmware">
+            <property name="title">
+             <string>Firmware</string>
+            </property>
+            <layout class="QGridLayout" name="gridLayout">
+             <item row="0" column="0">
+              <widget class="QGroupBox" name="groupBoxMainUf2">
+               <property name="title">
+                <string>Main UF2</string>
+               </property>
+               <property name="checkable">
+                <bool>true</bool>
+               </property>
+               <layout class="QGridLayout" name="gridLayout_2">
+                <item row="0" column="0">
+                 <widget class="QLineEdit" name="lineEditMainUf2"/>
+                </item>
+                <item row="0" column="1">
+                 <widget class="QToolButton" name="toolButtonMainUf2Browse">
+                  <property name="text">
+                   <string>...</string>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </widget>
+             </item>
+             <item row="1" column="0">
+              <widget class="QGroupBox" name="groupBoxDisplayUf2">
+               <property name="title">
+                <string>Display UF2</string>
+               </property>
+               <property name="checkable">
+                <bool>true</bool>
+               </property>
+               <layout class="QGridLayout" name="gridLayout_3">
+                <item row="0" column="0">
+                 <widget class="QLineEdit" name="lineEditDisplayUf2"/>
+                </item>
+                <item row="0" column="1">
+                 <widget class="QToolButton" name="toolButtonDisplayUf2Browse">
+                  <property name="text">
+                   <string>...</string>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+        <widget class="QWidget" name="tabLog">
+         <attribute name="title">
+          <string>Log</string>
+         </attribute>
+         <layout class="QGridLayout" name="gridLayout_7">
+          <item row="0" column="0">
+           <widget class="QTextEdit" name="textEditLog"/>
+          </item>
+          <item row="1" column="0">
+           <widget class="QPushButton" name="pushButtonLogClear">
+            <property name="text">
+             <string>&amp;Clear</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
        </widget>
       </item>
      </layout>

@@ -2,6 +2,7 @@ import os
 import pathlib
 import platform
 import subprocess
+import threading
 import time
 from typing import Any, Self
 from PySide6 import QtCore, QtGui, QtWidgets
@@ -88,9 +89,11 @@ class FreeWiliBootloaderMessage:
 
 
 class FreeWiliBootloader:
-    def __init__(self, freewili: FreeWili, msg_queue: Queue = Queue()):
+    def __init__(self, freewili: FreeWili, msg_queue: Queue, barrier: threading.Barrier):
         assert isinstance(freewili, FreeWili)
         assert isinstance(msg_queue, Queue)
+        assert isinstance(barrier, threading.Barrier)
+        self.barrier = barrier
         self.msg_queue = msg_queue
         self.freewili = freewili
         self._quit = False
@@ -99,7 +102,7 @@ class FreeWiliBootloader:
     def quit(self):
         self._quit = True
 
-    def _message(self, msg: str, success: bool, progress: None | float = -1):
+    def _message(self, msg: str, success: bool, progress: None | float = -1) -> None:
         assert isinstance(msg, str)
         assert isinstance(success, bool)
         if progress is not None:
@@ -114,10 +117,10 @@ class FreeWiliBootloader:
         usb_types: None | tuple[USBDeviceType],
         processor_type: FreeWiliProcessorType,
         timeout_sec: float = 30.0,
-        delay_sec: float = 6.0,
+        delay_sec: float = 20.0,
     ) -> bool:
         if not usb_types:
-            usb_types = (
+            usb_types: None | tuple[USBDeviceType] = (
                 USBDeviceType.Serial,
                 USBDeviceType.SerialMain,
                 USBDeviceType.SerialDisplay,
@@ -147,13 +150,13 @@ class FreeWiliBootloader:
                         self._message(f"{processor_type.name} {usb_device.kind.name} ready", True)
                         return True
                 time.sleep(0.1)
+            return False
         finally:
             start = time.time()
             while (time.time() - start) < delay_sec:
                 if self._quit:
-                    return False
+                    break
                 time.sleep(0.01)
-        return False
 
     def enter_uf2(self, processor_type: FreeWiliProcessorType) -> bool:
         assert isinstance(processor_type, FreeWiliProcessorType)
@@ -161,6 +164,8 @@ class FreeWiliBootloader:
         if not self._wait_for_device(None, processor_type):
             self._message("Device no longer exists", False)
             return False
+
+        self.barrier.wait(30.0)
 
         self._message(f"Entering UF2 bootloader on {processor_type.name}...", True)
         try:
@@ -198,6 +203,9 @@ class FreeWiliBootloader:
         if not self.enter_uf2(processor_type):
             return False
 
+        # This probably isn't the best place to put this
+        self.barrier.reset()
+
         # Need to find the actual path, self.freewili might be stale
         devices = FreeWili.find_all()
         path: None | str = None
@@ -223,14 +231,19 @@ class FreeWiliBootloader:
             written_bytes = 0
             last_written_bytes = 0
             last_update = start
+            read_size = 4096 * 10
             with open(str(uf2_fname), "rb") as fsrc, open(str(path), "wb") as fdst:
                 while True:
-                    buf = fsrc.read(4096*10)  # Read 4096*10 bytes at a time
+                    buf = fsrc.read(read_size)  # Read 4096*10 bytes at a time
                     if not buf:
-                        # Randomize the end so all the drivers don't populate at the same time
-                        time.sleep(delay_sec*2)
                         break
                     written_bytes += len(buf)
+                    # Randomize the end so all the drivers don't populate at the same time
+                    if written_bytes >= fsize_bytes:
+                        self._message("Waiting...", True, 98)
+                        self.barrier.wait(30.0)
+                        self._message(f"Finalizing in {delay_sec} seconds...", True, 99)
+                        time.sleep(delay_sec)
                     fdst.write(buf)
                     fdst.flush()
                     if platform.system() == "Linux":
@@ -258,6 +271,13 @@ class FreeWiliBootloader:
                 True,
                 100.0,
             )
+            if not self._wait_for_device(
+                (USBDeviceType.Serial, USBDeviceType.SerialMain, USBDeviceType.SerialDisplay),
+                processor_type,
+                delay_sec=6.0,
+            ):
+                self._message("Device no longer exists", False)
+                return False
             return True
         except Exception as ex:
             self._message(
@@ -265,18 +285,3 @@ class FreeWiliBootloader:
                 False,
             )
         return False
-
-
-if __name__ == "__main__":
-    fw_bootloader = FreeWiliBootloader(FreeWili.find_first().expect("Failed to find any devices"))
-    # print(fw_bootloader.enter_uf2(FreeWiliProcessorType.Main))
-    print(fw_bootloader.flash_firmware("/home/drebbe/Downloads/FreeWiliDisplayV44.uf2", FreeWiliProcessorType.Display))
-    time.sleep(3)
-    print(fw_bootloader.flash_firmware("/home/drebbe/Downloads/FreeWiliMainv48.uf2", FreeWiliProcessorType.Main))
-
-    while True:
-        try:
-            msg = fw_bootloader.msg_queue.get_nowait()
-            print(msg)
-        except Empty:
-            break
