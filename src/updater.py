@@ -14,7 +14,6 @@ from freewili import FreeWili
 from freewili.types import FreeWiliProcessorType
 import pyfwfinder
 from result import Err, Ok, UnwrapError
-import atomics
 from pyfwfinder import USBDeviceType
 
 
