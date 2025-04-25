@@ -93,7 +93,7 @@ class FreeWiliBootloader:
         assert isinstance(msg_queue, Queue)
         self.msg_queue = msg_queue
         self.freewili = freewili
-        self._quit = atomics.atomic(width=1, atype=atomics.INT)
+        self._quit = False
         self._debug_print = True
 
     def quit(self):
@@ -127,10 +127,11 @@ class FreeWiliBootloader:
         assert isinstance(processor_type, FreeWiliProcessorType)
         assert isinstance(timeout_sec, (int, float))
 
+        self._message(f"Waiting for {processor_type.name}...", True)
         start = time.time()
         try:
             while (time.time() - start) < timeout_sec:
-                if self._quit.load() == 1:
+                if self._quit:
                     return False
                 try:
                     devices = FreeWili.find_all()
@@ -143,12 +144,13 @@ class FreeWiliBootloader:
                     if not usb_device:
                         continue
                     if usb_device.kind in usb_types:
+                        self._message(f"{processor_type.name} {usb_device.kind.name} ready", True)
                         return True
                 time.sleep(0.1)
         finally:
             start = time.time()
             while (time.time() - start) < delay_sec:
-                if self._quit.load() == 1:
+                if self._quit:
                     return False
                 time.sleep(0.01)
         return False
@@ -223,12 +225,12 @@ class FreeWiliBootloader:
             last_update = start
             with open(str(uf2_fname), "rb") as fsrc, open(str(path), "wb") as fdst:
                 while True:
-                    buf = fsrc.read(1024)  # Read 1024 bytes at a time
+                    buf = fsrc.read(4096*10)  # Read 4096*10 bytes at a time
                     if not buf:
                         # Randomize the end so all the drivers don't populate at the same time
-                        time.sleep(delay_sec)
+                        time.sleep(delay_sec*2)
                         break
-                    written_bytes += 1024
+                    written_bytes += len(buf)
                     fdst.write(buf)
                     fdst.flush()
                     if platform.system() == "Linux":
@@ -238,6 +240,7 @@ class FreeWiliBootloader:
                     else:
                         try:
                             os.fsync(fdst.fileno())
+                            pass
                         except OSError as ex:
                             print(ex)
                     if time.time() - last_update >= 1.0 and written_bytes != last_written_bytes:
