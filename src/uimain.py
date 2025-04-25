@@ -111,19 +111,42 @@ class MainWidget(QtWidgets.QWidget):
 
         self.ui.lineEditMainUf2.setText(settings.value("MainUF2Path", ""))
         self.ui.lineEditDisplayUf2.setText(settings.value("DisplayUF2Path", ""))
+        self.ui.groupBoxMainUf2.setChecked(
+            str(settings.value("MainUF2Enabled", self.ui.groupBoxMainUf2.isChecked())).upper() in ["TRUE"],
+        )
+        self.ui.groupBoxDisplayUf2.setChecked(
+            str(settings.value("DisplayUF2Enabled", self.ui.groupBoxDisplayUf2.isChecked())).upper() in ["TRUE"],
+        )
 
         self.uf2_button_text = self.ui.pushButtonEnterUf2.text()
         self.reflash_button_text = self.ui.pushButtonReflash.text()
         self.refresh_button_text = self.ui.pushButtonRefresh.text()
 
-        self.restoreGeometry(settings.value("WindowGeometry", self.saveGeometry()))
-        # self.restoreState(settings.value("WindowState", self.saveState()))
+        geometry: QtCore.QByteArray = settings.value("WindowGeometry", self.saveGeometry()) # type: ignore
+        self.restoreGeometry(geometry)
+
+        self.on_pushButtonRefresh_clicked()
 
     @QtCore.Slot()
     def closeEvent(self, event: QtCore.QEvent) -> None:  # noqa: N802
         """Window close event handler."""
         settings = QtCore.QSettings()
         settings.setValue("WindowGeometry", self.saveGeometry())
+        settings.setValue("MainUF2Enabled", self.ui.groupBoxMainUf2.isChecked())
+        settings.setValue("DisplayUF2Enabled", self.ui.groupBoxDisplayUf2.isChecked())
+
+    def start_spinner(self) -> None:
+        """Start the spinner animation."""
+        movie = QtGui.QMovie(":/images/loading.gif")
+        self.ui.labelSpinner.setMovie(movie)
+        self.ui.labelSpinner.setScaledContents(True)
+        self.ui.labelSpinner.show()
+        movie.start()
+
+    def stop_spinner(self) -> None:
+        """Stop the spinner animation."""
+        self.ui.labelSpinner.movie().stop()
+        self.ui.labelSpinner.hide()
 
     @QtCore.Slot()
     def on_toolButtonMainUf2Browse_clicked(self) -> None:  # noqa: N802
@@ -231,6 +254,7 @@ class MainWidget(QtWidgets.QWidget):
             self.ui.treeViewDevices.resizeColumnToContents(x)
         self.ui.treeViewDevices.setColumnWidth(self.header_labels.index("Status"), 500)
         self.ui.groupBox.setTitle(f"Devices ({len(fw_devices)})")
+        self.ui.treeViewDevices.selectAll()
 
     @QtCore.Slot()
     def on_pushButtonReflash_clicked(self) -> None:  # noqa: N802
@@ -432,6 +456,7 @@ class MainWidget(QtWidgets.QWidget):
     @QtCore.Slot()
     def uf2_worker_started(self) -> None:
         """Signal for UF2 bootloader worker."""
+        self.start_spinner()
         self.ui.textEditLog.clear()
         self.ui.tabWidget.setCurrentIndex(1)
         self.ui.groupBoxMainUf2.setEnabled(False)
@@ -447,6 +472,7 @@ class MainWidget(QtWidgets.QWidget):
     @QtCore.Slot()
     def uf2_worker_complete(self) -> None:
         """Signal for UF2 bootloader worker."""
+        self.stop_spinner()
         self.ui.tabWidget.setCurrentIndex(0)
         self.ui.groupBoxMainUf2.setEnabled(True)
         self.ui.groupBoxDisplayUf2.setEnabled(True)
@@ -462,6 +488,7 @@ class MainWidget(QtWidgets.QWidget):
     @QtCore.Slot()
     def reflash_worker_started(self) -> None:
         """Signal for reflash firmware worker."""
+        self.start_spinner()
         self.ui.textEditLog.clear()
         self.ui.tabWidget.setCurrentIndex(1)
         self.ui.groupBoxMainUf2.setEnabled(False)
@@ -477,6 +504,7 @@ class MainWidget(QtWidgets.QWidget):
     @QtCore.Slot()
     def reflash_worker_complete(self) -> None:
         """Signal for reflash firmware worker."""
+        self.stop_spinner()
         self.ui.tabWidget.setCurrentIndex(0)
         self.ui.groupBoxMainUf2.setEnabled(True)
         self.ui.groupBoxDisplayUf2.setEnabled(True)
@@ -519,3 +547,8 @@ class MainWidget(QtWidgets.QWidget):
                     ProgressDataType.Progress.value,
                 )
                 break
+
+    @QtCore.Slot()
+    def on_pushButtonLogClear_clicked(self) -> None:
+        """Button click handler."""
+        self.ui.textEditLog.clear()

@@ -193,6 +193,7 @@ class FreeWiliBootloader:
         processor_type: FreeWiliProcessorType,
         delay_sec: int | float = 0.0,
     ) -> bool:
+        delay_sec *= 2
         assert isinstance(processor_type, FreeWiliProcessorType)
         if isinstance(uf2_fname, str):
             uf2_fname = pathlib.Path(uf2_fname)

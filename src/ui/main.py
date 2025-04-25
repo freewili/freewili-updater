@@ -16,15 +16,16 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
 from PySide6.QtWidgets import (QAbstractItemView, QApplication, QGridLayout, QGroupBox,
-    QHeaderView, QLineEdit, QPushButton, QSizePolicy,
-    QTabWidget, QTextEdit, QToolButton, QTreeView,
-    QWidget)
+    QHeaderView, QLabel, QLineEdit, QPushButton,
+    QSizePolicy, QTabWidget, QTextEdit, QToolButton,
+    QTreeView, QWidget)
+from . import main_rc
 
 class Ui_FormMain(object):
     def setupUi(self, FormMain):
         if not FormMain.objectName():
             FormMain.setObjectName(u"FormMain")
-        FormMain.resize(743, 558)
+        FormMain.resize(883, 558)
         self.gridLayout_5 = QGridLayout(FormMain)
         self.gridLayout_5.setObjectName(u"gridLayout_5")
         self.groupBox = QGroupBox(FormMain)
@@ -34,23 +35,19 @@ class Ui_FormMain(object):
         self.pushButtonEnterUf2 = QPushButton(self.groupBox)
         self.pushButtonEnterUf2.setObjectName(u"pushButtonEnterUf2")
 
-        self.gridLayout_4.addWidget(self.pushButtonEnterUf2, 3, 1, 1, 1)
+        self.gridLayout_4.addWidget(self.pushButtonEnterUf2, 3, 2, 1, 1)
+
+        self.labelSpinner = QLabel(self.groupBox)
+        self.labelSpinner.setObjectName(u"labelSpinner")
+        self.labelSpinner.setMinimumSize(QSize(50, 50))
+        self.labelSpinner.setMaximumSize(QSize(50, 50))
+
+        self.gridLayout_4.addWidget(self.labelSpinner, 3, 1, 1, 1)
 
         self.pushButtonReflash = QPushButton(self.groupBox)
         self.pushButtonReflash.setObjectName(u"pushButtonReflash")
 
         self.gridLayout_4.addWidget(self.pushButtonReflash, 3, 0, 1, 1)
-
-        self.treeViewDevices = QTreeView(self.groupBox)
-        self.treeViewDevices.setObjectName(u"treeViewDevices")
-        self.treeViewDevices.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
-
-        self.gridLayout_4.addWidget(self.treeViewDevices, 0, 0, 1, 2)
-
-        self.pushButtonRefresh = QPushButton(self.groupBox)
-        self.pushButtonRefresh.setObjectName(u"pushButtonRefresh")
-
-        self.gridLayout_4.addWidget(self.pushButtonRefresh, 1, 0, 1, 2)
 
         self.tabWidget = QTabWidget(self.groupBox)
         self.tabWidget.setObjectName(u"tabWidget")
@@ -118,7 +115,22 @@ class Ui_FormMain(object):
 
         self.tabWidget.addTab(self.tabLog, "")
 
-        self.gridLayout_4.addWidget(self.tabWidget, 2, 0, 1, 2)
+        self.gridLayout_4.addWidget(self.tabWidget, 2, 0, 1, 3)
+
+        self.pushButtonRefresh = QPushButton(self.groupBox)
+        self.pushButtonRefresh.setObjectName(u"pushButtonRefresh")
+
+        self.gridLayout_4.addWidget(self.pushButtonRefresh, 1, 0, 1, 3)
+
+        self.treeViewDevices = QTreeView(self.groupBox)
+        self.treeViewDevices.setObjectName(u"treeViewDevices")
+        self.treeViewDevices.setStyleSheet(u"background-image: url(:/images/fw-logo.png);\n"
+"background-position: center center;\n"
+"background-repeat: no-repeat;\n"
+"background-attachment:fixed;")
+        self.treeViewDevices.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
+
+        self.gridLayout_4.addWidget(self.treeViewDevices, 0, 0, 1, 3)
 
         self.gridLayout_4.setRowStretch(0, 1)
 
@@ -137,8 +149,8 @@ class Ui_FormMain(object):
         FormMain.setWindowTitle(QCoreApplication.translate("FormMain", u"Free-Wili Firmware Updater", None))
         self.groupBox.setTitle(QCoreApplication.translate("FormMain", u"Devices", None))
         self.pushButtonEnterUf2.setText(QCoreApplication.translate("FormMain", u"&Enter UF2 on Selected", None))
+        self.labelSpinner.setText("")
         self.pushButtonReflash.setText(QCoreApplication.translate("FormMain", u"&Reflash Selected", None))
-        self.pushButtonRefresh.setText(QCoreApplication.translate("FormMain", u"&Refresh", None))
         self.groupBoxFirmware.setTitle(QCoreApplication.translate("FormMain", u"Firmware", None))
         self.groupBoxMainUf2.setTitle(QCoreApplication.translate("FormMain", u"Main UF2", None))
         self.toolButtonMainUf2Browse.setText(QCoreApplication.translate("FormMain", u"...", None))
@@ -147,5 +159,6 @@ class Ui_FormMain(object):
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tabFirmware), QCoreApplication.translate("FormMain", u"Firmware", None))
         self.pushButtonLogClear.setText(QCoreApplication.translate("FormMain", u"&Clear", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tabLog), QCoreApplication.translate("FormMain", u"Log", None))
+        self.pushButtonRefresh.setText(QCoreApplication.translate("FormMain", u"&Refresh", None))
     # retranslateUi
 
