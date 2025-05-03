@@ -1,0 +1,42 @@
+name: Build
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2022, ubuntu-24.04, macos-15]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Install uv and activate the environment
+        uses: astral-sh/setup-uv@v6
+        with:
+          activate-environment: true
+      - run: uv sync --dev
+
+      - name: Build executable
+        run: |
+          pyside6-uic ./src/ui/main.ui -o ./src/ui/main.py --from-imports . |
+          pyside6-rcc ./src/ui/main.qrc -o ./src/ui/main_rc.py |
+          pyinstaller main.spec
+      
+      - name: Get short commit hash
+        id: get_hash
+        run: echo "GIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: freewili-updater-${{ matrix.os }}-${{ env.GIT_HASH }}
+          path: dist/
