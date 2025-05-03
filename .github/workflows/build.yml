@@ -33,7 +33,12 @@ jobs:
       
       - name: Get short commit hash
         id: get_hash
-        run: echo "GIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+        run: |
+          if [ $RUNNER_OS == 'Windows' ]; then
+            echo "GIT_HASH=$(git rev-parse --short HEAD)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          else
+            echo "GIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+          fi
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

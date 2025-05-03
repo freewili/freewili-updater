@@ -1,8 +1,8 @@
 import enum
-from queue import Empty, Queue
-from threading import Thread
 import threading
 import time
+from queue import Empty, Queue
+from threading import Thread
 from typing import Any
 
 from freewili import FreeWili
@@ -59,8 +59,12 @@ class ProgressDelegate(QtWidgets.QStyledItemDelegate):
         # Progress fill
         progress_width = int((progress / 100) * rect.width())
         filled_rect = QtCore.QRect(rect.left(), rect.top(), progress_width, rect.height())
-        painter.setBrush(option.palette.highlight())
-        painter.drawRoundedRect(filled_rect, radius, radius)
+        if progress >= 0:
+            if option.state & QtWidgets.QStyle.StateFlag.State_Selected:
+                painter.setBrush(option.palette.highlight().color().darker(130))  # 130 means 30% darker
+            else:
+                painter.setBrush(option.palette.highlight())
+            painter.drawRoundedRect(filled_rect, radius, radius)
 
         # Draw the text
         painter.setPen(option.palette.highlightedText().color())
@@ -69,25 +73,6 @@ class ProgressDelegate(QtWidgets.QStyledItemDelegate):
         else:
             text = f"{text}"
         painter.drawText(option.rect, QtCore.Qt.AlignmentFlag.AlignCenter, text)
-        # opt = QtWidgets.QStyleOptionProgressBar()
-        # opt.state = QtWidgets.QStyle.State_Enabled
-        # opt.direction = option.direction
-        # opt.fontMetrics = option.fontMetrics
-        # opt.rect = option.rect
-        # opt.palette = option.palette
-        # opt.minimum = 0
-        # if progress < 0:
-        #     opt.maximum = 0
-        #     opt.text = f"{text}"
-        # else:
-        #     opt.maximum = 100
-        #     opt.text = f"{text} {progress:.1f}%"
-        # opt.progress = float(progress)
-        # opt.textVisible = True
-
-        # opt.state |= QtWidgets.QStyle.StateFlag.State_Horizontal
-        # style = option.widget.style() if option.widget is not None else QtWidgets.QApplication.style()
-        # style.drawControl(QtWidgets.QStyle.ControlElement.CE_ProgressBar, opt, painter, option.widget)
 
 
 class MainWidget(QtWidgets.QWidget):
@@ -122,7 +107,7 @@ class MainWidget(QtWidgets.QWidget):
         self.reflash_button_text = self.ui.pushButtonReflash.text()
         self.refresh_button_text = self.ui.pushButtonRefresh.text()
 
-        geometry: QtCore.QByteArray = settings.value("WindowGeometry", self.saveGeometry()) # type: ignore
+        geometry: QtCore.QByteArray = settings.value("WindowGeometry", self.saveGeometry())  # type: ignore
         self.restoreGeometry(geometry)
 
         self.on_pushButtonRefresh_clicked()
