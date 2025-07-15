@@ -1,4 +1,5 @@
 import enum
+import pathlib
 import threading
 import time
 from queue import Empty, Queue
@@ -22,6 +23,25 @@ class ProgressDataType(enum.Enum):
 class ProgressDelegate(QtWidgets.QStyledItemDelegate):
     """Custom Delegate displaying a Progress bar."""
 
+    def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.animation_timer = QtCore.QTimer()
+        self.animation_timer.timeout.connect(self._animate)
+        self.animation_timer.start(50)  # Update every 50ms for smooth animation
+        self.animation_position = 0
+        self.animation_direction = 1
+
+    def _animate(self) -> None:
+        self.animation_position += self.animation_direction * 2
+        if self.animation_position >= 100:
+            self.animation_direction = -1
+        elif self.animation_position <= 0:
+            self.animation_direction = 1
+        
+        # Trigger repaint for all items with progress = -1
+        if self.parent() and hasattr(self.parent(), 'viewport'):
+            self.parent().viewport().update()
+
     # def sizeHint(self, option: Any, index: Any):
     #     return QtCore.QSize(400, 25)
 
@@ -44,24 +64,36 @@ class ProgressDelegate(QtWidgets.QStyledItemDelegate):
 
         # Draw background (for selection, etc.)
         if option.state & QtWidgets.QStyle.StateFlag.State_Selected:
+            # Fill the background with highlight color, but leave space for progress bar
             painter.fillRect(option.rect, option.palette.highlight())
 
         # Draw the progress bar manually
         rect = option.rect.adjusted(1, 1, -1, -1)  # tweak padding
         radius = 3
 
-        # Background bar
+        # Background bar - always use normal background color
         painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
         painter.setPen(QtCore.Qt.PenStyle.NoPen)
-        painter.setBrush(option.palette.base())
+        painter.setBrush(option.palette.window())  # Use window color instead of base
         painter.drawRoundedRect(rect, radius, radius)
 
         # Progress fill
-        progress_width = int((progress / 100) * rect.width())
-        filled_rect = QtCore.QRect(rect.left(), rect.top(), progress_width, rect.height())
-        if progress >= 0:
+        if progress == -1:
+            # Bouncing animation
+            bar_width = rect.width() // 4  # Width of the bouncing bar
+            bar_position = int((self.animation_position / 100) * (rect.width() - bar_width))
+            filled_rect = QtCore.QRect(rect.left() + bar_position, rect.top(), bar_width, rect.height())
             if option.state & QtWidgets.QStyle.StateFlag.State_Selected:
-                painter.setBrush(option.palette.highlight().color().darker(130))  # 130 means 30% darker
+                painter.setBrush(option.palette.highlight().color().darker(130))  # 30% darker
+            else:
+                painter.setBrush(option.palette.highlight())
+            painter.drawRoundedRect(filled_rect, radius, radius)
+        elif progress > 0:
+            # Normal progress bar
+            progress_width = int((progress / 100) * rect.width())
+            filled_rect = QtCore.QRect(rect.left(), rect.top(), progress_width, rect.height())
+            if option.state & QtWidgets.QStyle.StateFlag.State_Selected:
+                painter.setBrush(option.palette.highlight().color().darker(130))  # 30% darker
             else:
                 painter.setBrush(option.palette.highlight())
             painter.drawRoundedRect(filled_rect, radius, radius)
@@ -136,10 +168,11 @@ class MainWidget(QtWidgets.QWidget):
     @QtCore.Slot()
     def on_toolButtonMainUf2Browse_clicked(self) -> None:  # noqa: N802
         """Button click handler."""
+        dir = pathlib.Path(self.ui.lineEditMainUf2.text()).resolve()
         fname, filter_type = QtWidgets.QFileDialog.getOpenFileName(
             self,
             "Open Main Firmware",
-            "~/Downloads",
+            str(dir),
             "UF2 Files (*.uf2);;All Files (*.*)",
         )
         if fname:
@@ -150,8 +183,9 @@ class MainWidget(QtWidgets.QWidget):
     @QtCore.Slot()
     def on_toolButtonDisplayUf2Browse_clicked(self) -> None:  # noqa: N802
         """Button click handler."""
+        dir = pathlib.Path(self.ui.lineEditDisplayUf2.text()).resolve()
         fname, filter_type = QtWidgets.QFileDialog.getOpenFileName(
-            self, "Open Display Firmware", ".", "UF2 Files (*.uf2);;All Files (*.*)"
+            self, "Open Display Firmware", str(dir), "UF2 Files (*.uf2);;All Files (*.*)"
         )
         if fname:
             settings = QtCore.QSettings()
@@ -392,10 +426,24 @@ class MainWidget(QtWidgets.QWidget):
 
         if display_enabled:
             threads = []
+            results = {}  # Store results from each thread
+            
+            def flash_display_wrapper(
+                bl_device: updater.FreeWiliBootloader,
+                display_uf2_fname: str,
+                processor_type: FreeWiliProcessorType,
+                index: int
+            ) -> bool:
+                """Wrapper to capture return value from flash_firmware."""
+                result = bl_device.flash_firmware(display_uf2_fname, processor_type, index)
+                results[index] = result
+                return result
+
             for i, bl_device in enumerate(bl_devices):
                 t = Thread(
-                    target=bl_device.flash_firmware,
+                    target=flash_display_wrapper,
                     args=(
+                        bl_device,
                         display_uf2_fname,
                         FreeWiliProcessorType.Display,
                         i,
@@ -407,9 +455,17 @@ class MainWidget(QtWidgets.QWidget):
             for thread in threads:
                 thread.join()
 
+            # Check if any display firmware flashing failed
+            display_failed = any(not success for success in results.values())
+
         bl_barrier.reset()
 
         if main_enabled:
+            # Only proceed with main firmware if display firmware succeeded (or wasn't enabled)
+            if display_enabled and display_failed:
+                # Display firmware failed, skip main firmware flashing
+                return
+
             threads = []
             for i, bl_device in enumerate(bl_devices):
                 t = Thread(
@@ -510,7 +566,15 @@ class MainWidget(QtWidgets.QWidget):
 
     def update_device_status(self, msg: updater.FreeWiliBootloaderMessage) -> None:
         """Update the status field in the treeview."""
-        self.ui.textEditLog.append(f"""[{msg.serial}][{msg.progress:.1f}%] "{msg.msg}" {msg.success}""")
+        log_text = f"""[{msg.serial}][{msg.progress:.1f}%] "{msg.msg}" """
+
+        if msg.success:
+            # Normal text for success
+            self.ui.textEditLog.append(log_text)
+        else:
+            # Bold red text for failure
+            self.ui.textEditLog.append(f'<span style="color: red; font-weight: bold;">{log_text}</span>')
+
         model = self.ui.treeViewDevices.model()
         if not model:
             return

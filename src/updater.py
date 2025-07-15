@@ -101,7 +101,7 @@ class FreeWiliBootloader:
     def quit(self):
         self._quit = True
 
-    def _message(self, msg: str, success: bool, progress: None | float = -1) -> None:
+    def _message(self, msg: str, success: bool, progress: None | float = 0) -> None:
         assert isinstance(msg, str)
         assert isinstance(success, bool)
         if progress is not None:
@@ -129,7 +129,7 @@ class FreeWiliBootloader:
         assert isinstance(processor_type, FreeWiliProcessorType)
         assert isinstance(timeout_sec, (int, float))
 
-        self._message(f"Waiting for {processor_type.name}...", True)
+        self._message(f"Waiting for {processor_type.name}...", True, -1)
         start = time.time()
         try:
             while (time.time() - start) < timeout_sec:
@@ -146,7 +146,7 @@ class FreeWiliBootloader:
                     if not usb_device:
                         continue
                     if usb_device.kind in usb_types:
-                        self._message(f"{processor_type.name} {usb_device.kind.name} ready", True)
+                        self._message(f"{processor_type.name} {usb_device.kind.name} ready", True, -1)
                         return True
                 time.sleep(0.1)
             return False
@@ -179,6 +179,7 @@ class FreeWiliBootloader:
                     self.freewili.get_serial_from(processor_type).expect(
                         f"Failed to get serial on processor {processor_type.name}"
                     ).reset_to_uf2_bootloader().expect(f"Failed to enter UF2 bootloader on {processor_type.name}")
+                    self._message(f"{processor_type.name} entered UF2 bootloader", True)
                     break
                 except result.UnwrapError as ex:
                     # For some reason we were getting Input/Output errors when we had 20+ devices connected.
@@ -187,14 +188,14 @@ class FreeWiliBootloader:
                         raise ex
                     self._message(f"Retrying UF2 bootloader on {processor_type.name} ({uf2_count_attempts})", True)
                     time.sleep(3.0)
-            self._message("Waiting for device driver...", True)
+            self._message("Waiting for device driver...", True, -1)
             if not self._wait_for_device((USBDeviceType.MassStorage,), processor_type):
                 self._message(f"{processor_type.name} no longer exists", False)
                 return False
             self._message(f"{processor_type.name} entered UF2 bootloader", True)
             return True
         except UnwrapError as ex:
-            self._message(str(ex), False)
+            self._message(f"Failed to enter UF2 Bootloader: {str(ex)}", False)
             return False
 
     def flash_firmware(
@@ -209,9 +210,10 @@ class FreeWiliBootloader:
             uf2_fname = pathlib.Path(uf2_fname)
 
         if not uf2_fname.exists():
-            self._message(f"{uf2_fname} isn't valid", False)
+            self._message(f"{uf2_fname} isn't valid", False, 100.0)
             return False
         if not self.enter_uf2(processor_type):
+            self._message(f"Failed to enter UF2 bootloader on {processor_type.name}", False, 100.0)
             return False
 
         # This probably isn't the best place to put this
@@ -230,9 +232,9 @@ class FreeWiliBootloader:
                 path = pathlib.Path(device.display.paths[0])
                 break
         if not path:
-            self._message("Failed to find drive path", False)
+            self._message("Failed to find drive path", False, 100)
             return False
-        self._message(f"{processor_type.name} Uploading {uf2_fname.name} to {path}...", True)
+        self._message(f"{processor_type.name} Uploading {uf2_fname.name} to {path}...", True, -1)
 
         # update our destination path with the filename
         path = path / uf2_fname.name
@@ -287,12 +289,18 @@ class FreeWiliBootloader:
                 processor_type,
                 delay_sec=6.0,
             ):
-                self._message("Device no longer exists", False)
+                self._message("Device no longer exists", False, 100.0)
                 return False
+            self._message(
+                f"Complete: {processor_type.name} {written_bytes / 1000:.1f}KB in {end - start:.1f} seconds...",
+                True,
+                100.0,
+            )
             return True
         except Exception as ex:
             self._message(
-                str(ex),
+                f"Exception: {str(ex)}",
                 False,
+                100.0
             )
         return False
