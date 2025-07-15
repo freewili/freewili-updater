@@ -443,7 +443,6 @@ class MainWidget(QtWidgets.QWidget):
         """Signal for UF2 bootloader worker."""
         self.start_spinner()
         self.ui.textEditLog.clear()
-        self.ui.tabWidget.setCurrentIndex(1)
         self.ui.groupBoxMainUf2.setEnabled(False)
         self.ui.groupBoxDisplayUf2.setEnabled(False)
         self.ui.pushButtonReflash.setEnabled(False)
@@ -458,7 +457,6 @@ class MainWidget(QtWidgets.QWidget):
     def uf2_worker_complete(self) -> None:
         """Signal for UF2 bootloader worker."""
         self.stop_spinner()
-        self.ui.tabWidget.setCurrentIndex(0)
         self.ui.groupBoxMainUf2.setEnabled(True)
         self.ui.groupBoxDisplayUf2.setEnabled(True)
         self.ui.pushButtonReflash.setEnabled(True)
@@ -475,7 +473,6 @@ class MainWidget(QtWidgets.QWidget):
         """Signal for reflash firmware worker."""
         self.start_spinner()
         self.ui.textEditLog.clear()
-        self.ui.tabWidget.setCurrentIndex(1)
         self.ui.groupBoxMainUf2.setEnabled(False)
         self.ui.groupBoxDisplayUf2.setEnabled(False)
         self.ui.pushButtonEnterUf2.setEnabled(False)
@@ -490,7 +487,6 @@ class MainWidget(QtWidgets.QWidget):
     def reflash_worker_complete(self) -> None:
         """Signal for reflash firmware worker."""
         self.stop_spinner()
-        self.ui.tabWidget.setCurrentIndex(0)
         self.ui.groupBoxMainUf2.setEnabled(True)
         self.ui.groupBoxDisplayUf2.setEnabled(True)
         self.ui.pushButtonReflash.setEnabled(True)

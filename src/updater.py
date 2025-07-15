@@ -1,20 +1,20 @@
+import dataclasses
+import enum
 import os
 import pathlib
 import platform
 import subprocess
 import threading
 import time
+from queue import Queue
 from typing import Any, Self
-from PySide6 import QtCore, QtGui, QtWidgets
-import enum
-import dataclasses
-from queue import Empty, Queue
 
+import result
 from freewili import FreeWili
 from freewili.types import FreeWiliProcessorType
-import pyfwfinder
-from result import Err, Ok, UnwrapError
 from pyfwfinder import USBDeviceType
+from PySide6 import QtCore
+from result import UnwrapError
 
 
 class WorkerCommandType(enum.Enum):
@@ -173,9 +173,20 @@ class FreeWiliBootloader:
             if usb_device and usb_device.kind == USBDeviceType.MassStorage:
                 self._message(f"{processor_type.name} entered UF2 bootloader", True)
                 return True
-            self.freewili.get_serial_from(processor_type).expect(
-                f"Failed to get serial on processor {processor_type.name}"
-            ).reset_to_uf2_bootloader().expect(f"Failed to enter UF2 bootloader on {processor_type.name}")
+            uf2_count_attempts: int = 3
+            while True:
+                try:
+                    self.freewili.get_serial_from(processor_type).expect(
+                        f"Failed to get serial on processor {processor_type.name}"
+                    ).reset_to_uf2_bootloader().expect(f"Failed to enter UF2 bootloader on {processor_type.name}")
+                    break
+                except result.UnwrapError as ex:
+                    # For some reason we were getting Input/Output errors when we had 20+ devices connected.
+                    uf2_count_attempts -= 1
+                    if uf2_count_attempts <= 0:
+                        raise ex
+                    self._message(f"Retrying UF2 bootloader on {processor_type.name} ({uf2_count_attempts})", True)
+                    time.sleep(3.0)
             self._message("Waiting for device driver...", True)
             if not self._wait_for_device((USBDeviceType.MassStorage,), processor_type):
                 self._message(f"{processor_type.name} no longer exists", False)
