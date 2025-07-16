@@ -298,9 +298,17 @@ class FreeWiliBootloader:
             )
             return True
         except Exception as ex:
+            import traceback
+            exception_type = type(ex).__name__
+            exception_message = str(ex) if str(ex) else "No message"
+            traceback_str = traceback.format_exc()
+
             self._message(
-                f"Exception: {str(ex)}",
+                f"Exception: {exception_type}: {exception_message}",
                 False,
                 100.0
             )
+            # Print full traceback for debugging
+            print(f"Full traceback for {exception_type}:")
+            print(traceback_str)
         return False
