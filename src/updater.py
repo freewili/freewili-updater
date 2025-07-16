@@ -88,11 +88,13 @@ class FreeWiliBootloaderMessage:
 
 
 class FreeWiliBootloader:
-    def __init__(self, freewili: FreeWili, msg_queue: Queue, barrier: threading.Barrier):
+    def __init__(self, freewili: FreeWili, msg_queue: Queue, uf2_barrier: threading.Barrier, bl_barrier: threading.Barrier):
         assert isinstance(freewili, FreeWili)
         assert isinstance(msg_queue, Queue)
-        assert isinstance(barrier, threading.Barrier)
-        self.barrier = barrier
+        assert isinstance(uf2_barrier, threading.Barrier)
+        assert isinstance(bl_barrier, threading.Barrier)
+        self.uf2_barrier = uf2_barrier
+        self.bl_barrier = bl_barrier
         self.msg_queue = msg_queue
         self.freewili = freewili
         self._quit = False
@@ -164,7 +166,11 @@ class FreeWiliBootloader:
             self._message("Device no longer exists", False)
             return False
 
-        self.barrier.wait(30.0)
+        try:
+            self.uf2_barrier.wait(90.0)
+        except threading.BrokenBarrierError:
+            self._message("Oh snap, another device failed, aborting!", False, 100.0)
+            return False
 
         self._message(f"Entering UF2 bootloader on {processor_type.name}...", True)
         try:
@@ -172,6 +178,11 @@ class FreeWiliBootloader:
             usb_device = self.freewili.get_usb_device(processor_type)
             if usb_device and usb_device.kind == USBDeviceType.MassStorage:
                 self._message(f"{processor_type.name} entered UF2 bootloader", True)
+                try:
+                    self.uf2_barrier.wait(90.0)
+                except threading.BrokenBarrierError:
+                    self._message("Oh snap, another device failed, aborting!", False, 100.0)
+                    return False
                 return True
             uf2_count_attempts: int = 3
             while True:
@@ -193,6 +204,11 @@ class FreeWiliBootloader:
                 self._message(f"{processor_type.name} no longer exists", False)
                 return False
             self._message(f"{processor_type.name} entered UF2 bootloader", True)
+            try:
+                self.uf2_barrier.wait(90.0)
+            except threading.BrokenBarrierError:
+                self._message("Oh snap, another device failed, aborting!", False, 100.0)
+                return False
             return True
         except UnwrapError as ex:
             self._message(f"Failed to enter UF2 Bootloader: {str(ex)}", False)
@@ -216,8 +232,11 @@ class FreeWiliBootloader:
             self._message(f"Failed to enter UF2 bootloader on {processor_type.name}", False, 100.0)
             return False
 
-        # This probably isn't the best place to put this
-        self.barrier.reset()
+        try:
+            self.bl_barrier.wait(90.0)
+        except threading.BrokenBarrierError:
+            self._message("Oh snap, another device failed, aborting!", False, 100.0)
+            return False
 
         # Need to find the actual path, self.freewili might be stale
         devices = FreeWili.find_all()
@@ -236,6 +255,11 @@ class FreeWiliBootloader:
             return False
         self._message(f"{processor_type.name} Uploading {uf2_fname.name} to {path}...", True, -1)
 
+        try:
+            self.bl_barrier.wait(90.0)
+        except threading.BrokenBarrierError:
+            self._message("Oh snap, another device failed, aborting!", False, 100.0)
+            return False
         # update our destination path with the filename
         path = path / uf2_fname.name
         try:
@@ -254,9 +278,13 @@ class FreeWiliBootloader:
                     # Randomize the end so all the drivers don't populate at the same time
                     if written_bytes >= fsize_bytes:
                         self._message("Waiting...", True, 98)
-                        self.barrier.wait(30.0)
-                        self._message(f"Finalizing in {delay_sec} seconds...", True, 99)
-                        time.sleep(delay_sec)
+                        try:
+                            self.bl_barrier.wait(90.0)
+                        except threading.BrokenBarrierError:
+                            self._message("Oh snap, another device failed, aborting!", False, 100.0)
+                            return False
+                        #self._message(f"Finalizing in {delay_sec} seconds...", True, 99)
+                        #time.sleep(delay_sec)
                     fdst.write(buf)
                     fdst.flush()
                     if platform.system() == "Linux":
@@ -284,6 +312,11 @@ class FreeWiliBootloader:
                 True,
                 100.0,
             )
+            try:
+                self.bl_barrier.wait(30.0)
+            except threading.BrokenBarrierError:
+                self._message("Oh snap, another device failed, aborting!", False, 100.0)
+                return False
             if not self._wait_for_device(
                 (USBDeviceType.Serial, USBDeviceType.SerialMain, USBDeviceType.SerialDisplay),
                 processor_type,
@@ -296,6 +329,11 @@ class FreeWiliBootloader:
                 True,
                 100.0,
             )
+            try:
+                self.bl_barrier.wait(30.0)
+            except threading.BrokenBarrierError:
+                self._message("Oh snap, another device failed, aborting!", False, 100.0)
+                return False
             return True
         except Exception as ex:
             import traceback

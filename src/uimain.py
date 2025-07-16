@@ -376,9 +376,10 @@ class MainWidget(QtWidgets.QWidget):
             return
 
         bl_devices: list[updater.FreeWiliBootloader] = []
+        uf2_barrier = threading.Barrier(len(devices))
         bl_barrier = threading.Barrier(len(devices))
         for device in devices:
-            bl_devices.append(updater.FreeWiliBootloader(device, tx_queue, bl_barrier))
+            bl_devices.append(updater.FreeWiliBootloader(device, tx_queue, uf2_barrier, bl_barrier))
 
         if display_enabled:
             threads = []
@@ -393,6 +394,7 @@ class MainWidget(QtWidgets.QWidget):
             for thread in threads:
                 thread.join()
 
+        uf2_barrier.reset()
         bl_barrier.reset()
 
         if main_enabled:
@@ -408,6 +410,9 @@ class MainWidget(QtWidgets.QWidget):
             for thread in threads:
                 thread.join()
 
+        uf2_barrier.reset()
+        bl_barrier.reset()
+
     @classmethod
     def run_reflash(cls, tx_queue: Queue, rx_queue: Queue, *args: Any, **kwargs: Any) -> None:
         """Worker method to reflash firmware on Free-Wili devices."""
@@ -420,9 +425,10 @@ class MainWidget(QtWidgets.QWidget):
         if not devices:
             return
         bl_devices: list[updater.FreeWiliBootloader] = []
+        uf2_barrier = threading.Barrier(len(devices))
         bl_barrier = threading.Barrier(len(devices))
         for device in devices:
-            bl_devices.append(updater.FreeWiliBootloader(device, tx_queue, bl_barrier))
+            bl_devices.append(updater.FreeWiliBootloader(device, tx_queue, uf2_barrier, bl_barrier))
 
         if display_enabled:
             threads = []
@@ -458,6 +464,7 @@ class MainWidget(QtWidgets.QWidget):
             # Check if any display firmware flashing failed
             display_failed = any(not success for success in results.values())
 
+        uf2_barrier.reset()
         bl_barrier.reset()
 
         if main_enabled:
@@ -481,6 +488,9 @@ class MainWidget(QtWidgets.QWidget):
 
             for thread in threads:
                 thread.join()
+        
+        uf2_barrier.reset()
+        bl_barrier.reset()
 
     def _parse_queue(self, queue: Queue, max_count: int = 50) -> None:
         for _ in range(max_count):
