@@ -386,7 +386,7 @@ class MainWidget(QtWidgets.QWidget):
             for i, bl_device in enumerate(bl_devices):
                 t = Thread(
                     target=bl_device.enter_uf2,
-                    args=(FreeWiliProcessorType.Display,),
+                    args=(i, FreeWiliProcessorType.Display,),
                 )
                 t.start()
                 threads.append(t)
@@ -402,7 +402,7 @@ class MainWidget(QtWidgets.QWidget):
             for i, bl_device in enumerate(bl_devices):
                 t = Thread(
                     target=bl_device.enter_uf2,
-                    args=(FreeWiliProcessorType.Main,),
+                    args=(i, FreeWiliProcessorType.Main,),
                 )
                 t.start()
                 threads.append(t)
@@ -438,7 +438,7 @@ class MainWidget(QtWidgets.QWidget):
                 bl_device: updater.FreeWiliBootloader,
                 display_uf2_fname: str,
                 processor_type: FreeWiliProcessorType,
-                index: int
+                index: int = 0,
             ) -> bool:
                 """Wrapper to capture return value from flash_firmware."""
                 result = bl_device.flash_firmware(display_uf2_fname, processor_type, index)

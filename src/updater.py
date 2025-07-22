@@ -159,13 +159,14 @@ class FreeWiliBootloader:
                     break
                 time.sleep(0.01)
 
-    def enter_uf2(self, processor_type: FreeWiliProcessorType) -> bool:
+    def enter_uf2(self, index: int, processor_type: FreeWiliProcessorType) -> bool:
         assert isinstance(processor_type, FreeWiliProcessorType)
 
-        if not self._wait_for_device(None, processor_type):
+        if not self._wait_for_device(None, processor_type, delay_sec=1):
             self._message("Device no longer exists", False)
             return False
 
+        time.sleep(index/2.0)
         try:
             self.uf2_barrier.wait(90.0)
         except threading.BrokenBarrierError:
@@ -222,6 +223,7 @@ class FreeWiliBootloader:
         uf2_fname: str | pathlib.Path,
         processor_type: FreeWiliProcessorType,
         delay_sec: int | float = 0.0,
+        index: int = 0,
     ) -> bool:
         delay_sec *= 2
         assert isinstance(processor_type, FreeWiliProcessorType)
@@ -231,7 +233,7 @@ class FreeWiliBootloader:
         if not uf2_fname.exists():
             self._message(f"{uf2_fname} isn't valid", False, 100.0)
             return False
-        if not self.enter_uf2(processor_type):
+        if not self.enter_uf2(index, processor_type):
             self._message(f"Failed to enter UF2 bootloader on {processor_type.name}", False, 100.0)
             return False
 
@@ -282,8 +284,8 @@ class FreeWiliBootloader:
                     if written_bytes >= fsize_bytes:
                         self._message("Waiting...", True, 98)
                         try:
-                            # Display takes about 170 seconds to write.
-                            max_wait = 230
+                            # Display takes about 170 seconds to write. Timeout on the devil.
+                            max_wait = 400
                             elapsed = time.time() - start
                             if elapsed >= max_wait:
                                 elapsed = max_wait
@@ -293,7 +295,18 @@ class FreeWiliBootloader:
                             return False
                         #self._message(f"Finalizing in {delay_sec} seconds...", True, 99)
                         #time.sleep(delay_sec)
-                    fdst.write(buf)
+                    write_attempts = 6
+                    while write_attempts > 0:
+                        try:
+                            fdst.write(buf)
+                            break
+                        except OSError as ex:
+                            write_attempts -= 1
+                            if write_attempts <= 0:
+                                self._message(f"Failed to write to {path}: {str(ex)}", False, 100.0)
+                                return False
+                            self._message(f"Retrying write to {path} ({write_attempts})", True, 10)
+                            time.sleep(0.5)
                     fdst.flush()
                     if platform.system() == "Linux":
                         ret = subprocess.call(f"sync -d {path}", shell=True)
