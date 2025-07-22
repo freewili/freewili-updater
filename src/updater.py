@@ -118,7 +118,7 @@ class FreeWiliBootloader:
         usb_types: None | tuple[USBDeviceType],
         processor_type: FreeWiliProcessorType,
         timeout_sec: float = 30.0,
-        delay_sec: float = 20.0,
+        delay_sec: float = 10.0,
     ) -> bool:
         if not usb_types:
             usb_types: None | tuple[USBDeviceType] = (

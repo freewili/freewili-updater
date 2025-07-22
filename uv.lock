@@ -47,7 +47,7 @@ name = "exceptiongroup"
 version = "1.3.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "typing-extensions", marker = "python_full_version < '3.13'" },
+    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/0b/9f/a65090624ecf468cdca03533906e7c69ed7588582240cfe7cc9e770b50eb/exceptiongroup-1.3.0.tar.gz", hash = "sha256:b241f5885f560bc56a59ee63ca4c6a8bfa46ae4ad651af316d4e81817bb9fd88", size = 29749, upload-time = "2025-05-10T17:42:51.123Z" }
 wheels = [
@@ -65,7 +65,7 @@ wheels = [
 
 [[package]]
 name = "freewili"
-version = "0.0.27"
+version = "0.0.30"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
@@ -76,9 +76,9 @@ dependencies = [
     { name = "result" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/0c/f8/7e3d7147c82796dfaeee3242d204beed62652171f2880a077dee43178338/freewili-0.0.27.tar.gz", hash = "sha256:6591625b892c72a575130b025da516ec1415e572c187c8ec497c8fd1bb17a2b9", size = 162692, upload-time = "2025-07-09T18:05:17.429Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/f7/8b/8bc0590c572c1f97f5c713fd0bae1234c577e3c00be5d005bafd64fef458/freewili-0.0.30.tar.gz", hash = "sha256:b9a9ded111c0545fb1453932c456dbfe6bdaa23c5791a565d766322282a6aa18", size = 172124, upload-time = "2025-07-22T19:23:32.305Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d7/93/f6a3664dc5cac00eeff02803dbb9e10002cabf84a6bf82fc5d35c99f739c/freewili-0.0.27-py3-none-any.whl", hash = "sha256:bb8e6deed4a0a5a1370044a63762c744aca29c0d76a417818a05d9e0eadcdbb9", size = 27727, upload-time = "2025-07-09T18:05:16.458Z" },
+    { url = "https://files.pythonhosted.org/packages/0d/63/dda08676e9f481d54e295fe3116b915334365c695861cf9c9f6f6c8f55ae/freewili-0.0.30-py3-none-any.whl", hash = "sha256:1752f8262fc396c595e7cd0b278403796639c9abfacb7050df5ba159145dad5c", size = 32955, upload-time = "2025-07-22T19:23:31.51Z" },
 ]
 
 [[package]]
@@ -102,7 +102,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "freewili", specifier = "==0.0.27" },
+    { name = "freewili", specifier = "==0.0.30" },
     { name = "pyside6", specifier = ">=6.9.0" },
     { name = "result", specifier = ">=0.17.0" },
 ]
