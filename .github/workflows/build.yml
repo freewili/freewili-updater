@@ -32,11 +32,18 @@ jobs:
           pyside6-uic ./src/ui/main.ui -o ./src/ui/main.py --from-imports .
           pyside6-rcc ./src/ui/main.qrc -o ./src/ui/main_rc.py
           pyinstaller main.spec
+          
+      - name: Rename executable for platform
+        shell: bash
+        run: |
           # Rename executable to include OS type
           if [[ "${{ matrix.os }}" == windows-* ]]; then
-            mv dist/freewili-updater.exe dist/freewili-updater-${{ matrix.os }}-${{ github.ref_name }}.exe
+            cp dist/freewili-updater.exe dist/freewili-updater-${{ matrix.os }}-${{ github.ref_name }}.exe
+            rm dist/freewili-updater.exe
           else
-            mv dist/freewili-updater dist/freewili-updater-${{ matrix.os }}-${{ github.ref_name }}
+            cp dist/freewili-updater dist/freewili-updater-${{ matrix.os }}-${{ github.ref_name }}
+            chmod +x dist/freewili-updater-${{ matrix.os }}-${{ github.ref_name }}
+            rm dist/freewili-updater
           fi
 
       - name: Get short commit hash
@@ -61,18 +68,30 @@ jobs:
       contents: write
     
     steps:
-      - name: Download all artifacts
+      - name: Download all artifacts as zip files
         uses: actions/download-artifact@v4
         with:
           path: artifacts/
+          merge-multiple: false
       
-      - name: Display structure of downloaded files
-        run: ls -la artifacts/
+      - name: Create zip files from artifacts
+        run: |
+          mkdir -p release-zips
+          for artifact_dir in artifacts/*/; do
+            artifact_name=$(basename "$artifact_dir")
+            echo "Creating zip for: $artifact_name"
+            cd "$artifact_dir"
+            zip -r "../../release-zips/${artifact_name}.zip" *
+            cd ../..
+          done
+          
+          echo "Release zip files:"
+          ls -la release-zips/
       
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
-          files: artifacts/**/*
+          files: release-zips/*.zip
           draft: false
           prerelease: false
           generate_release_notes: true

@@ -12,7 +12,7 @@ from typing import Any, Self
 import result
 from freewili import FreeWili
 from freewili.types import FreeWiliProcessorType
-from pyfwfinder import USBDeviceType
+from pyfwfinder import USBDeviceType, DeviceType
 from PySide6 import QtCore
 from result import UnwrapError
 
@@ -141,16 +141,19 @@ class FreeWiliBootloader:
                     devices = FreeWili.find_all()
                 except RuntimeError as _ex:
                     continue
+                found = False
+                original_usb_device = self.freewili.get_usb_device(processor_type)
                 for device in devices:
-                    if self.freewili.device.serial != device.device.serial:
-                        continue
                     usb_device = device.get_usb_device(processor_type)
-                    if not usb_device:
+                    if original_usb_device.location != usb_device.location:
                         continue
+                    found = True
                     if usb_device.kind in usb_types:
                         self._message(f"{processor_type.name} {usb_device.kind.name} ready", True, -1)
                         return True
                 time.sleep(0.1)
+            if found:
+                self._message(f"Found {processor_type.name} device, but in the wrong configuration.", True, -1)
             return False
         finally:
             start = time.time()
@@ -246,15 +249,15 @@ class FreeWiliBootloader:
         # Need to find the actual path, self.freewili might be stale
         devices = FreeWili.find_all()
         path: None | str = None
+        original_usb_device = self.freewili.get_usb_device(processor_type)
         for device in devices:
-            if self.freewili.device.serial != device.device.serial:
+            usb_device = device.get_usb_device(processor_type)
+            if original_usb_device.location != usb_device.location:
                 continue
-            if processor_type == FreeWiliProcessorType.Main and device.main and device.main.paths:
-                path = pathlib.Path(device.main.paths[0])
-                break
-            elif processor_type == FreeWiliProcessorType.Display and device.display and device.display.paths:
-                path = pathlib.Path(device.display.paths[0])
-                break
+            if original_usb_device.kind != usb_device.kind:
+                continue
+            path = pathlib.Path(usb_device.paths[0])
+            break
         if not path:
             self._message("Failed to find drive path", False, 100)
             return False
