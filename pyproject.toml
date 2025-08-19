@@ -1,12 +1,12 @@
 [project]
 name = "freewili-updater"
-version = "0.1.0"
+dynamic = ["version"]
 description = "Free-Wili firmware updater"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "freewili==0.0.38",
-    "pyside6>=6.9.0",
+    "freewili==0.0.39",
+    "pyside6>=6.9.1",
     "result>=0.17.0",
 ]
 
@@ -51,3 +51,39 @@ ignore = [
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
+
+
+[build-system]
+requires = ["hatchling", "uv-dynamic-versioning"]
+build-backend = "hatchling.build"
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
+
+[tool.hatch.build.hooks.version]
+path = "src/_version.py"
+template = '''
+version = "{version}"
+'''
+
+[tool.uv-dynamic-versioning]
+metadata = false # I couldn't get pypi to upload with this enabled.
+strict = true
+style = "pep440"
+dirty = true
+
+[[tool.uv.index]]
+name = "pypi"
+url = "https://pypi.org/simple"
+publish-url = "https://pypi.org/legacy"
+
+[[tool.uv.index]]
+name = "testpypi"
+url = "https://test.pypi.org/simple"
+publish-url = "https://test.pypi.org/legacy"
+
+[project.scripts]
+fwi-updater = "main:main"

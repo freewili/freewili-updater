@@ -13,6 +13,8 @@ from PySide6 import QtCore, QtGui, QtWidgets
 import updater
 from ui.main import Ui_FormMain
 
+from _version import version as app_version  # noqa: F401
+
 
 class ProgressDataType(enum.Enum):
     Text = QtCore.Qt.ItemDataRole.DisplayRole
@@ -112,6 +114,7 @@ class MainWidget(QtWidgets.QWidget):
         QtWidgets.QWidget.__init__(self, parent)
         self.ui: Ui_FormMain = Ui_FormMain()
         self.ui.setupUi(self)
+        self.setWindowTitle(f"{self.windowTitle()} v{app_version}")
 
         self.worker: updater.Worker
 

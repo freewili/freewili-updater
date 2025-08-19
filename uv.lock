@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 2
 requires-python = ">=3.10"
 resolution-markers = [
     "python_full_version >= '3.11'",
@@ -65,7 +65,7 @@ wheels = [
 
 [[package]]
 name = "freewili"
-version = "0.0.38"
+version = "0.0.39"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
@@ -76,15 +76,14 @@ dependencies = [
     { name = "result" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/b8/98/3735bda358c5cae0c8d3381571f3eb1eb395fc2cb2f5b5475f5ecb41c108/freewili-0.0.38.tar.gz", hash = "sha256:acc456c0592ffb51889497a84bec537bc9e8e3f566125ea214bb4715b4e6d253", size = 191786, upload-time = "2025-08-16T17:02:57.823Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/db/fa/ce65c52002875f91064a448d9add3720b4273fbcc153a5cd5fdcedf256db/freewili-0.0.39.tar.gz", hash = "sha256:27135260692adc6d08d3a1cd99408730bf40879b5718854f5ca1cb30b91f1c9c", size = 191731, upload-time = "2025-08-19T13:49:07.424Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/9f/31/55e3fbb0e998315987e7062377ad1eb282a201d2d15ea031baad28eb50bc/freewili-0.0.38-py3-none-any.whl", hash = "sha256:9a418c581ff81a5d2f02f17a38afdc036f502c0f3514c765cc1c5469303bb1b2", size = 37616, upload-time = "2025-08-16T17:02:56.674Z" },
+    { url = "https://files.pythonhosted.org/packages/a2/ca/f54584e47a330cac372957d3842d0faa0947b8dc77f9fc9e7ed3ef153983/freewili-0.0.39-py3-none-any.whl", hash = "sha256:8826a0df1f716cee79ceb738317214f7a829410504d0b9cb2c43c32cce3f9e22", size = 37544, upload-time = "2025-08-19T13:49:06.251Z" },
 ]
 
 [[package]]
 name = "freewili-updater"
-version = "0.1.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "freewili" },
     { name = "pyside6" },
@@ -102,8 +101,8 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "freewili", specifier = "==0.0.38" },
-    { name = "pyside6", specifier = ">=6.9.0" },
+    { name = "freewili", specifier = "==0.0.39" },
+    { name = "pyside6", specifier = ">=6.9.1" },
     { name = "result", specifier = ">=0.17.0" },
 ]
 
