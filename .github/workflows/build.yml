@@ -18,7 +18,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          fetch-depth: 0
 
       - name: Install uv and activate the environment
         uses: astral-sh/setup-uv@v6
@@ -27,11 +27,18 @@ jobs:
       - run: uv sync --dev
 
       - name: Build executable
+        shell: bash
         run: |
-          pyside6-uic ./src/ui/main.ui -o ./src/ui/main.py --from-imports . |
-          pyside6-rcc ./src/ui/main.qrc -o ./src/ui/main_rc.py |
+          pyside6-uic ./src/ui/main.ui -o ./src/ui/main.py --from-imports .
+          pyside6-rcc ./src/ui/main.qrc -o ./src/ui/main_rc.py
           pyinstaller main.spec
-      
+          # Rename executable to include OS type
+          if [[ "${{ matrix.os }}" == windows-* ]]; then
+            mv dist/freewili-updater.exe dist/freewili-updater-${{ matrix.os }}-${{ github.ref_name }}.exe
+          else
+            mv dist/freewili-updater dist/freewili-updater-${{ matrix.os }}-${{ github.ref_name }}
+          fi
+
       - name: Get short commit hash
         id: get_hash
         shell: bash
