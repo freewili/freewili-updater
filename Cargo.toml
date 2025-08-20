@@ -1,0 +1,47 @@
+[package]
+name = "freewili-updater"
+version = "0.1.0"
+edition = "2024"
+
+# Hide console window on Windows for release builds
+[[bin]]
+name = "freewili-updater"
+path = "src/main.rs"
+
+[dependencies]
+freewili-finder-rs = { version = "0.4.4" }
+lz4 = "1.25.0"
+serial2 = "0.2.32"
+thiserror = "2.0.16"
+tokio = { version = "1.47.1", features = ["full"] }
+dioxus = { version = "0.6.3", features = [] }
+base64 = "0.22"
+cfg-if = "1.0.3"
+image = "0.25.8"
+
+# Force static asset embedding
+[package.metadata.manganis]
+static_assets = true
+optimize_assets = true
+
+[build-dependencies]
+lz4 = "1.25.0"
+built = { version = "0.8.0", features = ["git2", "semver", "chrono"] }
+
+[features]
+default = ["desktop"]
+web = ["dioxus/web"]
+desktop = ["dioxus/desktop"]
+mobile = ["dioxus/mobile"]
+
+[profile]
+
+[profile.wasm-dev]
+inherits = "dev"
+opt-level = 1
+
+[profile.server-dev]
+inherits = "dev"
+
+[profile.android-dev]
+inherits = "dev"

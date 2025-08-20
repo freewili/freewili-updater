@@ -1,6 +1,0 @@
-<RCC>
-  <qresource prefix="images">
-    <file alias="fw-logo.png">res/fw-logo.png</file>
-    <file alias="loading.gif">res/loading.gif</file>
-  </qresource>
-</RCC>
