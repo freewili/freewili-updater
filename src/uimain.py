@@ -121,9 +121,10 @@ class MainWidget(QtWidgets.QWidget):
         settings = QtCore.QSettings()
 
         self.header_labels = (
+            "UniqueID",
             "Name",
-            "Serial",
-            "Kind",
+            "Main",
+            "Display",
             "Status",
         )
         self.progress_delegate = ProgressDelegate(self.ui.treeViewDevices)
@@ -200,45 +201,63 @@ class MainWidget(QtWidgets.QWidget):
         assert isinstance(model, QtGui.QStandardItemModel)
         assert isinstance(freewili, FreeWili)
 
-        parent_item = QtGui.QStandardItem(f"{freewili.device.name} - {freewili.device.serial}")
-        if freewili.main:
-            status = ""
-            if freewili.main.paths:
-                status = freewili.main.paths[0]
-            elif freewili.main.port:
-                status = freewili.main.port
-            parent_item.appendRow(
-                [
-                    QtGui.QStandardItem(f"Main - {freewili.main.name}"),
-                    QtGui.QStandardItem(freewili.main.serial),
-                    QtGui.QStandardItem(freewili.main.kind.name),
-                    QtGui.QStandardItem(status),
-                ]
-            )
-        if freewili.display:
-            status = ""
-            if freewili.display.paths:
-                status = freewili.display.paths[0]
-            elif freewili.display.port:
-                status = freewili.display.port
-            parent_item.appendRow(
-                [
-                    QtGui.QStandardItem(f"Display - {freewili.display.name}"),
-                    QtGui.QStandardItem(freewili.display.serial),
-                    QtGui.QStandardItem(freewili.display.kind.name),
-                    QtGui.QStandardItem(status),
-                ]
-            )
+        status_item = QtGui.QStandardItem()
+        if freewili.device.unique_id in statuses:
+            progress, text, success = statuses[freewili.device.unique_id]
+            status_item.setData(progress, ProgressDataType.Progress.value)
+            status_item.setData(text, ProgressDataType.Text.value)
+            status_item.setData(success, ProgressDataType.Success.value)
 
-        parent_progress = QtGui.QStandardItem()
-        if freewili.device.serial in statuses:
-            progress, text, success = statuses[freewili.device.serial]
-            parent_progress.setData(progress, ProgressDataType.Progress.value)
-            parent_progress.setData(text, ProgressDataType.Text.value)
-            parent_progress.setData(success, ProgressDataType.Success.value)
-        model.appendRow(
-            [parent_item, QtGui.QStandardItem(freewili.device.serial), QtGui.QStandardItem(), parent_progress]
+        items = (
+            QtGui.QStandardItem(f"{freewili.unique_id}"),
+            QtGui.QStandardItem(f"{freewili.device}"),
+            QtGui.QStandardItem(str(freewili.main) if freewili.main else ""),
+            QtGui.QStandardItem(str(freewili.display) if freewili.display else ""),
+            status_item
         )
+        model.appendRow(items)
+
+        # parent_item = QtGui.QStandardItem(f"{freewili.device}")
+        # if freewili.main:
+        #     status = ""
+        #     if freewili.main.paths:
+        #         status = freewili.main.paths[0]
+        #     elif freewili.main.port:
+        #         status = freewili.main.port
+        #     parent_item.appendRow(
+        #         [
+        #             QtGui.QStandardItem(""),
+        #             QtGui.QStandardItem(f"Main - {freewili.main.name}"),
+        #             QtGui.QStandardItem(freewili.main.serial),
+        #             QtGui.QStandardItem(freewili.main.kind.name),
+        #             QtGui.QStandardItem(status),
+        #         ]
+        #     )
+        # if freewili.display:
+        #     status = ""
+        #     if freewili.display.paths:
+        #         status = freewili.display.paths[0]
+        #     elif freewili.display.port:
+        #         status = freewili.display.port
+        #     parent_item.appendRow(
+        #         [
+        #             QtGui.QStandardItem(""),
+        #             QtGui.QStandardItem(f"Display - {freewili.display.name}"),
+        #             QtGui.QStandardItem(freewili.display.serial),
+        #             QtGui.QStandardItem(freewili.display.kind.name),
+        #             QtGui.QStandardItem(status),
+        #         ]
+        #     )
+
+        # parent_progress = QtGui.QStandardItem()
+        # if freewili.device.serial in statuses:
+        #     progress, text, success = statuses[freewili.device.serial]
+        #     parent_progress.setData(progress, ProgressDataType.Progress.value)
+        #     parent_progress.setData(text, ProgressDataType.Text.value)
+        #     parent_progress.setData(success, ProgressDataType.Success.value)
+        # model.appendRow(
+        #     [QtGui.QStandardItem(f"{freewili.unique_id}"),parent_item, QtGui.QStandardItem(freewili.device.serial), QtGui.QStandardItem(), parent_progress]
+        # )
 
     @QtCore.Slot()
     def on_pushButtonRefresh_clicked(self) -> None:  # noqa: N802
@@ -250,11 +269,11 @@ class MainWidget(QtWidgets.QWidget):
         # Save the status message
         saved_status = {}
         for i in range(model.rowCount()):
-            serial = model.item(i, self.header_labels.index("Serial")).data(QtCore.Qt.DisplayRole)
+            unique_id = model.item(i, self.header_labels.index("UniqueID")).data(QtCore.Qt.DisplayRole)
             status_progress = model.item(i, self.header_labels.index("Status")).data(ProgressDataType.Progress.value)
             status_text = model.item(i, self.header_labels.index("Status")).data(ProgressDataType.Text.value)
             status_success = model.item(i, self.header_labels.index("Status")).data(ProgressDataType.Success.value)
-            saved_status[serial] = (status_progress, status_text, status_success)
+            saved_status[unique_id] = (status_progress, status_text, status_success)
 
         model.clear()
         model.setHorizontalHeaderLabels(self.header_labels)
@@ -281,7 +300,7 @@ class MainWidget(QtWidgets.QWidget):
     @QtCore.Slot()
     def on_pushButtonReflash_clicked(self) -> None:  # noqa: N802
         """Button click handler."""
-        if self.ui.pushButtonEnterUf2.text() == "Running...":
+        if self.ui.pushButtonReflash.text() == "Running...":
             self.worker.quit()
             return
         model = self.ui.treeViewDevices.model()
@@ -302,13 +321,9 @@ class MainWidget(QtWidgets.QWidget):
         selected = self.ui.treeViewDevices.selectionModel().selectedRows()
         devices = []
         for index in selected:
-            # We don't care about the children rows
-            item = model.itemFromIndex(index)
-            if not item.hasChildren():
-                continue
-            serial = model.item(index.row(), self.header_labels.index("Serial")).data(QtCore.Qt.DisplayRole)
+            unique_id = model.item(index.row(), self.header_labels.index("UniqueID")).data(QtCore.Qt.DisplayRole)
             for fw_device in fw_devices:
-                if fw_device.device.serial == serial:
+                if fw_device.device.unique_id == int(unique_id):
                     devices.append(fw_device)
 
         # Lets create the worker and start it
@@ -579,7 +594,7 @@ class MainWidget(QtWidgets.QWidget):
 
     def update_device_status(self, msg: updater.FreeWiliBootloaderMessage) -> None:
         """Update the status field in the treeview."""
-        log_text = f"""[{msg.serial}][{msg.progress:.1f}%] "{msg.msg}" """
+        log_text = f"""[{msg.device}][{msg.progress:.1f}%] "{msg.msg}" """
 
         if msg.success:
             # Normal text for success
@@ -592,8 +607,9 @@ class MainWidget(QtWidgets.QWidget):
         if not model:
             return
         for i in range(model.rowCount()):
-            serial = model.item(i, self.header_labels.index("Serial")).data(QtCore.Qt.DisplayRole)
-            if serial == msg.serial:
+            unique_id = int(model.item(i, self.header_labels.index("UniqueID")).data(QtCore.Qt.DisplayRole))
+            #serial = model.item(i, self.header_labels.index("Serial")).data(QtCore.Qt.DisplayRole)
+            if unique_id == msg.device.unique_id:
                 model.setData(
                     model.index(i, self.header_labels.index("Status")),
                     f"{msg.msg} {'' if msg.success else 'Failed'}",

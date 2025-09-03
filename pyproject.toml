@@ -5,7 +5,7 @@ description = "Free-Wili firmware updater"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "freewili==0.0.40",
+    "freewili>=0.0.42",
     "pyside6>=6.9.1",
     "result>=0.17.0",
 ]
@@ -25,6 +25,11 @@ ignore_missing_imports = true
 disallow_untyped_defs = true
 disallow_untyped_calls = false
 exclude = ["src/ui/main.py",]
+
+[tool.uv.sources]
+#result = { git = "https://github.com/montasaurus/result" }
+#freewili = { path = "../freewili-python" }
+
 
 [tool.ruff]
 line-length = 120

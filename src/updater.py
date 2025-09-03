@@ -12,7 +12,7 @@ from typing import Any, Self
 import result
 from freewili import FreeWili
 from freewili.types import FreeWiliProcessorType
-from pyfwfinder import USBDeviceType, DeviceType
+from pyfwfinder import USBDeviceType, DeviceType, USBDevice
 from PySide6 import QtCore
 from result import UnwrapError
 
@@ -81,7 +81,7 @@ class Worker(QtCore.QRunnable):
 
 @dataclasses.dataclass(frozen=True)
 class FreeWiliBootloaderMessage:
-    serial: str
+    device: FreeWili
     msg: str
     progress: None | float
     success: bool
@@ -109,9 +109,9 @@ class FreeWiliBootloader:
         if progress is not None:
             assert isinstance(progress, (int, float))
 
-        self.msg_queue.put(FreeWiliBootloaderMessage(self.freewili.device.serial, msg, progress, success))
+        self.msg_queue.put(FreeWiliBootloaderMessage(self.freewili.device, msg, progress, success))
         if self._debug_print:
-            print(f"{self.freewili.device.serial}: {msg} {progress} {success}")
+            print(f"{self.freewili.device}: {msg} {progress} {success}")
 
     def _wait_for_device(
         self,
@@ -132,6 +132,10 @@ class FreeWiliBootloader:
         assert isinstance(timeout_sec, (int, float))
 
         self._message(f"Waiting for {processor_type.name}...", True, -1)
+        if self.freewili.standalone and processor_type != FreeWiliProcessorType.Main:
+            self._message(f"Skipping {processor_type.name} on standalone device", True, 100.0)
+            return True
+
         start = time.time()
         try:
             while (time.time() - start) < timeout_sec:
@@ -139,21 +143,29 @@ class FreeWiliBootloader:
                     return False
                 try:
                     devices = FreeWili.find_all()
+                    if self.freewili not in devices:
+                        time.sleep(0.1)
+                        continue
+                    for device in devices:
+                        if device == self.freewili:
+                            self.freewili = device
                 except RuntimeError as _ex:
                     continue
-                found = False
-                original_usb_device = self.freewili.get_usb_device(processor_type)
-                for device in devices:
-                    usb_device = device.get_usb_device(processor_type)
-                    if original_usb_device.location != usb_device.location:
-                        continue
-                    found = True
-                    if usb_device.kind in usb_types:
-                        self._message(f"{processor_type.name} {usb_device.kind.name} ready", True, -1)
-                        return True
-                time.sleep(0.1)
-            if found:
-                self._message(f"Found {processor_type.name} device, but in the wrong configuration.", True, -1)
+                usb_device: None | USBDevice = None
+                match processor_type:
+                    case FreeWiliProcessorType.Main:
+                        if not self.freewili.main or self.freewili.main.kind not in usb_types:
+                            time.sleep(0.1)
+                            continue
+                        usb_device = self.freewili.main
+                    case FreeWiliProcessorType.Display:
+                        if not self.freewili.display or self.freewili.display.kind not in usb_types:
+                            time.sleep(0.1)
+                            continue
+                        usb_device = self.freewili.display
+                if usb_device:
+                    self._message(f"Found USB device for {processor_type.name}: {usb_device.kind.name}", True, -1)
+                return usb_device is not None
             return False
         finally:
             start = time.time()
@@ -164,6 +176,10 @@ class FreeWiliBootloader:
 
     def enter_uf2(self, index: int, processor_type: FreeWiliProcessorType) -> bool:
         assert isinstance(processor_type, FreeWiliProcessorType)
+
+        if self.freewili.standalone and processor_type != FreeWiliProcessorType.Main:
+            self._message(f"Skipping {processor_type.name} on standalone device", True, 100.0)
+            return True
 
         if not self._wait_for_device(None, processor_type, delay_sec=1):
             self._message("Device no longer exists", False)
@@ -179,7 +195,12 @@ class FreeWiliBootloader:
         self._message(f"Entering UF2 bootloader on {processor_type.name}...", True)
         try:
             # We might already be in UF2 bootloader, lets check here
-            usb_device = self.freewili.get_usb_device(processor_type)
+            usb_device: None | USBDevice = None
+            match processor_type:
+                case FreeWiliProcessorType.Main:
+                    usb_device = self.freewili.main
+                case FreeWiliProcessorType.Display:
+                    usb_device = self.freewili.display
             if usb_device and usb_device.kind == USBDeviceType.MassStorage:
                 self._message(f"{processor_type.name} already in UF2 bootloader", True)
                 try:
@@ -230,6 +251,11 @@ class FreeWiliBootloader:
     ) -> bool:
         delay_sec *= 2
         assert isinstance(processor_type, FreeWiliProcessorType)
+
+        if self.freewili.standalone and processor_type != FreeWiliProcessorType.Main:
+            self._message(f"Skipping {processor_type.name} on standalone device", True, 100.0)
+            return True
+
         if isinstance(uf2_fname, str):
             uf2_fname = pathlib.Path(uf2_fname)
 
@@ -248,19 +274,28 @@ class FreeWiliBootloader:
 
         # Need to find the actual path, self.freewili might be stale
         devices = FreeWili.find_all()
-        path: None | str = None
-        original_usb_device = self.freewili.get_usb_device(processor_type)
+        path: None | pathlib.Path = None
+        if self.freewili not in devices:
+            return False
         for device in devices:
-            usb_device = device.get_usb_device(processor_type)
-            if original_usb_device.location != usb_device.location:
-                continue
-            if original_usb_device.kind != usb_device.kind:
-                continue
-            path = pathlib.Path(usb_device.paths[0])
-            break
+            if device == self.freewili:
+                self.freewili = device
+        match processor_type:
+            case FreeWiliProcessorType.Main:
+                try:
+                    path = self.freewili.main.paths[0] if self.freewili.main else None
+                except Exception as e:
+                    self._message(f"Error getting main path: {e}", False)
+            case FreeWiliProcessorType.Display:
+                try:
+                    path = self.freewili.display.paths[0] if self.freewili.display else None
+                except Exception as e:
+                    self._message(f"Error getting display path: {e}", False)
+
         if not path:
             self._message("Failed to find drive path", False, 100)
             return False
+        path = pathlib.Path(path)
         self._message(f"{processor_type.name} Uploading {uf2_fname.name} to {path}...", True, -1)
 
         try:
