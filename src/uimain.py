@@ -123,8 +123,6 @@ class MainWidget(QtWidgets.QWidget):
         self.header_labels = (
             "UniqueID",
             "Name",
-            "Main",
-            "Display",
             "Status",
         )
         self.progress_delegate = ProgressDelegate(self.ui.treeViewDevices)
@@ -139,7 +137,6 @@ class MainWidget(QtWidgets.QWidget):
             str(settings.value("DisplayUF2Enabled", self.ui.groupBoxDisplayUf2.isChecked())).upper() in ["TRUE"],
         )
 
-        self.uf2_button_text = self.ui.pushButtonEnterUf2.text()
         self.reflash_button_text = self.ui.pushButtonReflash.text()
         self.refresh_button_text = self.ui.pushButtonRefresh.text()
 
@@ -168,6 +165,18 @@ class MainWidget(QtWidgets.QWidget):
         """Stop the spinner animation."""
         self.ui.labelSpinner.movie().stop()
         self.ui.labelSpinner.hide()
+
+    @QtCore.Slot(QtCore.QModelIndex)
+    def on_treeViewDevices_clicked(self, index: QtCore.QModelIndex) -> None:  # noqa: N802
+        """Tree view item click handler."""
+        model = self.ui.treeViewDevices.model()
+        if not model:
+            return
+        unique_id = model.item(index.row(), self.header_labels.index("UniqueID")).data(QtCore.Qt.DisplayRole)
+        for device in FreeWili.find_all():
+            if device.unique_id != int(unique_id):
+                continue
+            self.ui.labelDetails.setText(f"{device}\nUnique ID: {device.unique_id}\n{device.main}\n{device.display}\n{device.fpga}")
 
     @QtCore.Slot()
     def on_toolButtonMainUf2Browse_clicked(self) -> None:  # noqa: N802
@@ -211,53 +220,9 @@ class MainWidget(QtWidgets.QWidget):
         items = (
             QtGui.QStandardItem(f"{freewili.unique_id}"),
             QtGui.QStandardItem(f"{freewili.device}"),
-            QtGui.QStandardItem(str(freewili.main) if freewili.main else ""),
-            QtGui.QStandardItem(str(freewili.display) if freewili.display else ""),
             status_item
         )
         model.appendRow(items)
-
-        # parent_item = QtGui.QStandardItem(f"{freewili.device}")
-        # if freewili.main:
-        #     status = ""
-        #     if freewili.main.paths:
-        #         status = freewili.main.paths[0]
-        #     elif freewili.main.port:
-        #         status = freewili.main.port
-        #     parent_item.appendRow(
-        #         [
-        #             QtGui.QStandardItem(""),
-        #             QtGui.QStandardItem(f"Main - {freewili.main.name}"),
-        #             QtGui.QStandardItem(freewili.main.serial),
-        #             QtGui.QStandardItem(freewili.main.kind.name),
-        #             QtGui.QStandardItem(status),
-        #         ]
-        #     )
-        # if freewili.display:
-        #     status = ""
-        #     if freewili.display.paths:
-        #         status = freewili.display.paths[0]
-        #     elif freewili.display.port:
-        #         status = freewili.display.port
-        #     parent_item.appendRow(
-        #         [
-        #             QtGui.QStandardItem(""),
-        #             QtGui.QStandardItem(f"Display - {freewili.display.name}"),
-        #             QtGui.QStandardItem(freewili.display.serial),
-        #             QtGui.QStandardItem(freewili.display.kind.name),
-        #             QtGui.QStandardItem(status),
-        #         ]
-        #     )
-
-        # parent_progress = QtGui.QStandardItem()
-        # if freewili.device.serial in statuses:
-        #     progress, text, success = statuses[freewili.device.serial]
-        #     parent_progress.setData(progress, ProgressDataType.Progress.value)
-        #     parent_progress.setData(text, ProgressDataType.Text.value)
-        #     parent_progress.setData(success, ProgressDataType.Success.value)
-        # model.appendRow(
-        #     [QtGui.QStandardItem(f"{freewili.unique_id}"),parent_item, QtGui.QStandardItem(freewili.device.serial), QtGui.QStandardItem(), parent_progress]
-        # )
 
     @QtCore.Slot()
     def on_pushButtonRefresh_clicked(self) -> None:  # noqa: N802
@@ -294,6 +259,7 @@ class MainWidget(QtWidgets.QWidget):
         for x in range(model.columnCount()):
             self.ui.treeViewDevices.resizeColumnToContents(x)
         self.ui.treeViewDevices.setColumnWidth(self.header_labels.index("Status"), 500)
+        self.ui.treeViewDevices.hideColumn(self.header_labels.index("UniqueID"))
         self.ui.groupBox.setTitle(f"Devices ({len(fw_devices)})")
         self.ui.treeViewDevices.selectAll()
 
@@ -339,49 +305,6 @@ class MainWidget(QtWidgets.QWidget):
         self.worker.signals.finished.connect(self.reflash_worker_complete)
         QtCore.QThreadPool.globalInstance().start(self.worker)
 
-    @QtCore.Slot()
-    def on_pushButtonEnterUf2_clicked(self) -> None:  # noqa: N802
-        """Button click handler."""
-        if self.ui.pushButtonEnterUf2.text() == "Running...":
-            self.worker.quit()
-            return
-
-        model = self.ui.treeViewDevices.model()
-        if not model:
-            return
-        if (
-            QtWidgets.QMessageBox.warning(
-                self,
-                "Enter UF2 Bootloader",
-                "Do not disconnect the Free-Wili(s).\nWARNING: Firmware needs to be flashed to exit this mode.",
-                QtWidgets.QMessageBox.StandardButton.Ok | QtWidgets.QMessageBox.StandardButton.Cancel,
-                QtWidgets.QMessageBox.StandardButton.Cancel,
-            )
-            != QtWidgets.QMessageBox.StandardButton.Ok
-        ):
-            return
-        fw_devices = FreeWili.find_all()
-        selected = self.ui.treeViewDevices.selectionModel().selectedRows()
-        devices = []
-        for index in selected:
-            # We don't care about the children rows
-            item = model.itemFromIndex(index)
-            if not item.hasChildren():
-                continue
-            serial = model.item(index.row(), self.header_labels.index("Serial")).data(QtCore.Qt.DisplayRole)
-            for fw_device in fw_devices:
-                if fw_device.device.serial == serial:
-                    devices.append(fw_device)
-        # Lets create the worker and start it
-        self.worker = updater.Worker(
-            self.run_enter_uf2,
-            devices=devices,
-            main_enabled=self.ui.groupBoxMainUf2.isChecked(),
-            display_enabled=self.ui.groupBoxDisplayUf2.isChecked(),
-        )
-        self.worker.signals.started.connect(self.uf2_worker_started)
-        self.worker.signals.finished.connect(self.uf2_worker_complete)
-        QtCore.QThreadPool.globalInstance().start(self.worker)
 
     @classmethod
     def run_enter_uf2(cls, tx_queue: Queue, rx_queue: Queue, *args: Any, **kwargs: Any) -> None:
@@ -530,7 +453,6 @@ class MainWidget(QtWidgets.QWidget):
         self.ui.groupBoxMainUf2.setEnabled(False)
         self.ui.groupBoxDisplayUf2.setEnabled(False)
         self.ui.pushButtonReflash.setEnabled(False)
-        self.ui.pushButtonEnterUf2.setText("Running...")
         self.uf2_timer = QtCore.QTimer()
         self.uf2_timer.setInterval(3)
         self.uf2_timer.setSingleShot(False)
@@ -544,8 +466,6 @@ class MainWidget(QtWidgets.QWidget):
         self.ui.groupBoxMainUf2.setEnabled(True)
         self.ui.groupBoxDisplayUf2.setEnabled(True)
         self.ui.pushButtonReflash.setEnabled(True)
-        self.ui.pushButtonEnterUf2.setEnabled(True)
-        self.ui.pushButtonEnterUf2.setText(self.uf2_button_text)
         tx_queue, _ = self.worker.get_job_queues()
         self._parse_queue(tx_queue)
         del self.worker
@@ -559,7 +479,6 @@ class MainWidget(QtWidgets.QWidget):
         self.ui.textEditLog.clear()
         self.ui.groupBoxMainUf2.setEnabled(False)
         self.ui.groupBoxDisplayUf2.setEnabled(False)
-        self.ui.pushButtonEnterUf2.setEnabled(False)
         self.ui.pushButtonReflash.setText("Running...")
         self.reflash_timer = QtCore.QTimer()
         self.reflash_timer.setInterval(3)
@@ -574,7 +493,6 @@ class MainWidget(QtWidgets.QWidget):
         self.ui.groupBoxMainUf2.setEnabled(True)
         self.ui.groupBoxDisplayUf2.setEnabled(True)
         self.ui.pushButtonReflash.setEnabled(True)
-        self.ui.pushButtonEnterUf2.setEnabled(True)
         self.ui.pushButtonReflash.setText(self.reflash_button_text)
         tx_queue, _ = self.worker.get_job_queues()
         self._parse_queue(tx_queue)

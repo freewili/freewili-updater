@@ -19,7 +19,7 @@ from PySide6.QtWidgets import (QAbstractItemView, QApplication, QGridLayout, QGr
     QHeaderView, QLabel, QLineEdit, QPushButton,
     QSizePolicy, QTextEdit, QToolButton, QTreeView,
     QVBoxLayout, QWidget)
-from . import main_rc
+import main_rc
 
 class Ui_FormMain(object):
     def setupUi(self, FormMain):
