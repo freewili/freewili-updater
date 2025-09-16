@@ -1,27 +1,33 @@
-Free-Wili Firmware Updater
-==========================
+# FreeWili Firmware Updater
 
-Firmware Updater for Free-Wili devices.
+![FreeWili Header](assets/header.png)
 
+A modern, cross-platform desktop application for updating firmware on FreeWili devices, including DEF CON badges and other FreeWili hardware. Built with Rust and Dioxus for maximum performance and reliability.
 
-Development
-===========
+## Overview
 
-```bash
-$ uv venv
-$ source .venv/bin/activate
-$ uv sync
-$ pyside6-uic ./src/ui/main.ui -o ./src/ui/main.py --from-imports .
-$ pyside6-rcc ./src/ui/main.qrc -o ./src/ui/main_rc.py
-$ uv run python src/main.py
-```
+![FreeWili Updater Screenshot](screenshot.png)
 
-```bash
-$ pyinstaller main.spec
-```
+The FreeWili Firmware Updater provides a user-friendly interface for managing and updating firmware on FreeWili devices. It automatically detects connected devices and guides you through the firmware update process with real-time progress tracking and detailed logging.
 
 
-License
-=======
 
-MIT
+
+
+### Installation
+
+Download the latest release for your platform:
+
+- **Windows**: `freewili-updater-windows-x64.msi` or `freewili-updater-windows-x64-setup.exe`
+- **macOS**: `freewili-updater-macos-arm64.zip` (contains .app and .dmg)
+- **Linux**: `freewili-updater-linux-x86_64.deb`, `.rpm`, or `.AppImage`
+
+## License
+
+MIT License - See [LICENSE](LICENSE) file for details.
+
+## Links
+
+- [FreeWili Documentation](https://docs.freewili.com/)
+- [Firmware Update Instructions](https://docs.freewili.com/freewili-firmware-update/)
+- [GitHub Repository](https://github.com/freewili/freewili-updater)

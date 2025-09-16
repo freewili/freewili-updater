@@ -1,0 +1,348 @@
+/* App-wide styling with system color theme support */
+/* Ensure all containers expand to full height */
+html, body, #root {
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+#main {
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: var(--primary-bg);
+    transition: background-color 0.2s ease;
+}
+
+:root {
+    --primary-bg: #f5f5f5;
+    --secondary-bg: #ffffff;
+    --text-color: #333333;
+    --border-color: #d0d0d0;
+    --button-bg: #007acc;
+    --button-hover-bg: #005a9e;
+    --button-disabled-bg: #cccccc;
+    --status-bg: rgba(240, 240, 240, 0.9);
+    --header-shadow: rgba(0, 0, 0, 0.1);
+    --overlay-bg: rgba(255, 255, 255, 0.2);
+
+    /* Dropdown arrow SVG */
+    --dropdown-arrow: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23333333' stroke-width='2'%3e%3cpolyline points='6,9 12,15 18,9'/%3e%3c/svg%3e");
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --primary-bg: #1e1e1e;
+        --secondary-bg: #2d2d30;
+        --text-color: #ffffff;
+        --border-color: #404040;
+        --button-bg: #0e639c;
+        --button-hover-bg: #1177bb;
+        --button-disabled-bg: #555555;
+        --status-bg: rgba(37, 37, 38, 0.9);
+        --header-shadow: rgba(0, 0, 0, 0.3);
+        --overlay-bg: rgba(45, 45, 48, 0.2);
+        --dropdown-arrow: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2'%3e%3cpolyline points='6,9 12,15 18,9'/%3e%3c/svg%3e");
+    }
+}
+
+body {
+    background-color: var(--primary-bg);
+    color: var(--text-color);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    margin: 0;
+    padding: 0;
+    transition: background-color 0.2s ease, color 0.2s ease;
+    height: 100vh;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    justify-content: center;
+    align-items: center;
+}
+
+.updater-container {
+    height: 100%;
+    width: 100%;
+    min-width: 250px;
+    max-width: 1200px;
+    background-color: var(--secondary-bg);
+    box-shadow: 0 4px 12px var(--header-shadow);
+    transition: background-color 0.2s ease;
+    flex: 1 0 auto;
+    display: flex;
+    flex-direction: column;    
+    box-sizing: border-box;
+}
+
+/* Header styling */
+.header {
+    text-align: center;
+    display: flex;
+    flex: 1 0 auto; /* Fixed height instead of flexible */
+    align-items: center;
+    justify-content: center;
+    /* margin-bottom: 15px; */
+    /* border-bottom: 2px solid var(--border-color); */
+    /* padding-bottom: 10px; */
+}
+
+.header-logo {
+    max-width: 80%;
+    max-height: 100%;
+    height: auto;
+    width: auto;
+    object-fit: contain;
+}
+
+/* Device display with background image */
+.device-display {
+    position: relative;
+    display: flex;
+    
+    min-height: 150px;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    background-color: var(--status-bg);
+    background-image: var(--device-bg-image, none);
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: contain;
+}
+
+.device-display.no-device {
+    background-color: var(--status-bg);
+    background-image: none !important;
+}
+
+/* Overlay for content over background image */
+.device-overlay {
+    position: relative;
+    flex: 1;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: space-cen;
+    padding: 0px;
+    z-index: 1;
+}
+
+/* Top controls */
+.top-controls {
+    display: flex;
+    width: 100%;
+    flex: 1 0 auto;
+    gap: 6px;
+    align-items: flex-start;
+    background-color: var(--overlay-bg);
+    padding: 0px 6px 0px 6px;
+    border-radius: 6px;
+    backdrop-filter: blur(2px);
+    flex-wrap: nowrap;
+    box-sizing: border-box;
+}
+
+.dropdown {
+    width: 100%;
+    flex: 2 1;
+    min-height: 30px;
+    height: 100%;
+    padding: 6px;
+    font-size: 12px;
+    border: 2px solid var(--border-color);
+    border-radius: 6px;
+    background-color: var(--secondary-bg);
+    color: var(--text-color);
+    transition: border-color 0.2s ease, background-color 0.2s ease;
+    
+    /* Cross-platform fixes */
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-image: var(--dropdown-arrow);
+    background-repeat: no-repeat;
+    background-position: right 6px center;
+    background-size: 20px;
+    cursor: pointer;
+    box-sizing: border-box;
+
+    /* Text truncation */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.dropdown:focus {
+    outline: none;
+    border-color: var(--button-bg);
+}
+
+.dropdown:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.refresh-button {
+    flex: 1;
+    min-height: 25px;
+    height: 100%;
+
+
+    background-color: var(--button-bg);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+    white-space: nowrap;
+}
+
+.refresh-button:hover:not(:disabled) {
+    background-color: var(--button-hover-bg);
+    transform: translateY(-1px);
+}
+
+.refresh-button:disabled {
+    background-color: var(--button-disabled-bg);
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Bottom controls */
+.bottom-controls {
+    width: 100%;
+    
+    display: flex;
+    flex-direction: column;
+
+    /* margin: 0px 50px 0px 50px; */
+    gap: 6px;
+    background-color: var(--overlay-bg);
+    padding: 0px 6px 6px 6px;
+    backdrop-filter: blur(5px);
+    z-index: 2;
+    box-sizing: border-box;
+}
+
+/* Status area */
+.status-area {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.status-message {
+    margin: 0;
+    font-size: 12px;
+    color: var(--text-color);
+}
+
+.flash-progress {
+    width: 100%;
+    height: 15px;
+    border-radius: 5px;
+    appearance: none;
+    background-color: var(--border-color);
+    margin: 0;
+}
+
+/* For determinate progress bars */
+.flash-progress::-webkit-progress-bar {
+    background-color: var(--border-color);
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.flash-progress::-webkit-progress-value {
+    background: linear-gradient(90deg, #007acc, #005a9e);
+    border-radius: 5px;
+    transition: width 0.3s ease;
+}
+
+/* Progress bar fill for Firefox */
+.flash-progress::-moz-progress-bar {
+    background: linear-gradient(90deg, #007acc, #005a9e);
+    border-radius: 5px;
+}
+
+/* For indeterminate progress - use a class instead */
+.flash-progress.indeterminate {
+    background: linear-gradient(90deg, var(--border-color) 40%, #007acc 50%, var(--border-color) 60%);
+    background-size: 200% 100%;
+    animation: progress-indeterminate 2s infinite linear;
+}
+
+/* Override webkit styles for indeterminate */
+.flash-progress.indeterminate::-webkit-progress-bar {
+    background: transparent;
+}
+
+.flash-progress.indeterminate::-webkit-progress-value {
+    background: transparent;
+}
+
+/* Remove the .indeterminate class styling since we're using the proper :indeterminate pseudo-class */
+
+@keyframes progress-indeterminate {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* Flash button */
+.flash-button {
+    flex: 1;
+    min-height: 40px;
+    padding: 6px 6px;
+    font-size: 14px;
+    width: 100%;
+    font-weight: 600;
+    background-color: var(--button-bg);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    align-self: flex-start;
+}
+
+.flash-button:hover:not(:disabled) {
+    background-color: var(--button-hover-bg);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px var(--header-shadow);
+}
+
+.flash-button:disabled {
+    background-color: var(--button-disabled-bg);
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* Center message for no device state */
+.center-message {
+    position: relative;
+    top: 50%;
+    left: 50%;
+    width: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    background-color: var(--overlay-bg);
+    padding: 10px;
+    border-radius: 8px;
+    backdrop-filter: blur(5px);
+}
+
+.center-message p {
+    margin: 0;
+    font-size: 14px;
+    color: var(--text-color);
+}

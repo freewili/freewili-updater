@@ -1,0 +1,3 @@
+[submodule "assets/freewili-firmware"]
+	path = assets/freewili-firmware
+	url = git@github.com:freewili/freewili-firmware.git
