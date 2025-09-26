@@ -196,6 +196,12 @@ fn CenterMessageComponent() -> Element {
         div { class: "center-message",
             if let Some(device) = selected_device.read().as_ref() {
                 p { "{device}" }
+                if let Ok(main_usb) = device.get_main_usb_device() {
+                    p { "{main_usb}" }
+                }
+                if let Ok(display_usb) = device.get_display_usb_device() {
+                    p { "{display_usb}" }
+                }
             } else {
                 p { "Click refresh to scan for devices." }
             }
@@ -338,6 +344,7 @@ fn FlashComponent() -> Element {
                 Err(e) => {
                     let _ = tx
                         .send(crate::flasher::UpdateMessage::Error(format!("{}", e)));
+                    let _ = tx.send(crate::flasher::UpdateMessage::Progress(0));
                 }
             }
             drop(tx);
