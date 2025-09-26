@@ -11,7 +11,7 @@ path = "src/main.rs"
 [dependencies]
 freewili-finder-rs = { version = "0.4.4" }
 lz4 = "1.25.0"
-serial2 = "0.2.32"
+serial2 = "0.2.33"
 thiserror = "2.0.16"
 tokio = { version = "1.47.1", features = ["full"] }
 dioxus = { version = "0.6.3", features = [] }
