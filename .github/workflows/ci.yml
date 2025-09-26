@@ -207,12 +207,14 @@ jobs:
         run: |
           # Find files with git hashes and prepare them for upload
           find artifacts -name "*.deb" -exec cp {} ./linux-release.deb \;
+          find artifacts -name "*.rpm" -exec cp {} ./linux-release.rpm \;
+          find artifacts -name "*.AppImage" -exec cp {} ./linux-release.AppImage \;
           find artifacts -name "*.dmg" -exec cp {} ./macos-release.dmg \;
           find artifacts -name "*-setup.exe" -exec cp {} ./windows-release-setup.exe \;
-          ls -la *.deb *.dmg *.exe 2>/dev/null || echo "Some files may not exist"
+          ls -la *.deb *.rpm *.AppImage *.dmg *.exe 2>/dev/null || echo "Some files may not exist"
 
       # Upload to GitHub Release
-      - name: Upload Linux binary to release
+      - name: Upload Linux DEB to release
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -221,6 +223,26 @@ jobs:
           asset_path: ./linux-release.deb
           asset_name: freewili-updater-linux-x86_64.deb
           asset_content_type: application/vnd.debian.binary-package
+
+      - name: Upload Linux RPM to release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./linux-release.rpm
+          asset_name: freewili-updater-linux-x86_64.rpm
+          asset_content_type: application/x-rpm
+
+      - name: Upload Linux AppImage to release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./linux-release.AppImage
+          asset_name: freewili-updater-linux-x86_64.AppImage
+          asset_content_type: application/x-executable
 
       - name: Upload macOS binary to release
         uses: actions/upload-release-asset@v1
