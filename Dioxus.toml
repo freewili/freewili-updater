@@ -43,7 +43,7 @@ icon_path = "icons/icon.ico"
 [bundle.windows.nsis]
 # Set the installer icon (this is for the installer itself)
 installer_icon = "icons/icon.ico"
-install_mode = "Both"
+install_mode = "CurrentUser"
 # Languages for the installer
 languages = ["English"]
 # Whether to display the language selector dialog
