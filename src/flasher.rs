@@ -288,7 +288,7 @@ impl FreeWiliUpdater {
         Ok(duration.elapsed())
     }
     fn flash_uf2(&self) -> Result<std::time::Duration> {
-        let _flash_uf2 = |path: String, data: Vec<u8>| -> Result<()> {
+        let _flash_uf2 = |name: String, path: String, data: Vec<u8>| -> Result<()> {
             let complete_path = std::path::PathBuf::from(&path).join("firmware.uf2");
             let mut f = std::fs::File::create(complete_path)
                 .map_err(|e| Error::Flash(format!("Failed to create UF2 file: {}", e)))?;
@@ -297,20 +297,19 @@ impl FreeWiliUpdater {
             #[cfg(not(target_os = "macos"))]
             let chunk_size: usize = 4096 * 32;
             for (i, d) in data.chunks(chunk_size).enumerate() {
+                let progress = ((i as f32
+                            / ((data.len() + chunk_size - 1).div_ceil(chunk_size))
+                                as f32) * 100.0) as i16;
                 self.update_message(
                     UpdateMessage::ProgressDetail(
                         format!(
-                            "Flashing chunk {i} of {} ({path})",
+                            "{name} Flashing chunk {i} of {} ({progress}%) ({path})",
                             (data.len() + chunk_size - 1).div_ceil(chunk_size),
                         ),
                     ),
                 );
                 self.update_message(
-                    UpdateMessage::Progress(
-                        ((i as f32
-                            / ((data.len() + chunk_size - 1).div_ceil(chunk_size))
-                                as f32) * 100.0) as i16,
-                    ),
+                    UpdateMessage::Progress(progress),
                 );
                 f.write_all(d)
                     .map_err(|e| Error::Flash(
@@ -330,20 +329,23 @@ impl FreeWiliUpdater {
         let device_type = &self.original_device_type;
         match get_uf2_for_device_type(device_type) {
             Some(Uf2File::FreeWili(main_uf2, display_uf2)) => {
+                self.update_message(UpdateMessage::ProgressDetail(
+                    "Flashing FreeWili UF2 files...".into(),
+                ));
                 if let Some(path) = device.get_display_usb_device()?.path {
-                    _flash_uf2(path, display_uf2.clone())?;
+                    _flash_uf2("Display".to_string(), path, display_uf2.clone())?;
                 } else {
                     return Err(Error::Flash("Display device path not found".into()));
                 }
                 if let Some(path) = device.get_main_usb_device()?.path {
-                    _flash_uf2(path, main_uf2.clone())?;
+                    _flash_uf2("Main".to_string(), path, main_uf2.clone())?;
                 } else {
                     return Err(Error::Flash("Main device path not found".into()));
                 }
             }
             Some(Uf2File::Standalone(main_uf2)) => {
                 if let Some(path) = device.get_main_usb_device()?.path {
-                    _flash_uf2(path, main_uf2.clone())?;
+                    _flash_uf2("Main".to_string(), path, main_uf2.clone())?;
                 } else {
                     return Err(Error::Flash("Main device path not found".into()));
                 }

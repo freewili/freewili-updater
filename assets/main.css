@@ -19,14 +19,14 @@ html, body, #root {
 :root {
     --primary-bg: #f5f5f5;
     --secondary-bg: #ffffff;
-    --text-color: #333333;
+    --text-color: #000000;
     --border-color: #d0d0d0;
     --button-bg: #007acc;
     --button-hover-bg: #005a9e;
     --button-disabled-bg: #cccccc;
     --status-bg: rgba(240, 240, 240, 0.9);
     --header-shadow: rgba(0, 0, 0, 0.1);
-    --overlay-bg: rgba(255, 255, 255, 0.2);
+    --overlay-bg: rgba(255, 255, 255, 0.5);
 
     /* Dropdown arrow SVG */
     --dropdown-arrow: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23333333' stroke-width='2'%3e%3cpolyline points='6,9 12,15 18,9'/%3e%3c/svg%3e");
@@ -35,7 +35,7 @@ html, body, #root {
 /* Dark mode */
 @media (prefers-color-scheme: dark) {
     :root {
-        --primary-bg: #1e1e1e;
+        --primary-bg: #a3a3a3;
         --secondary-bg: #2d2d30;
         --text-color: #ffffff;
         --border-color: #404040;
@@ -342,7 +342,11 @@ body {
 }
 
 .center-message p {
-    margin: 0;
+    margin: 6;
+    padding: 6;
+    /* border: 1px solid var(--border-color); */
+    border-radius: 10px;
     font-size: 14px;
     color: var(--text-color);
+    background-color: var(--overlay-bg);
 }
