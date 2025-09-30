@@ -31,7 +31,7 @@ Download the latest release for your platform:
 ## Release
 
 - Download releases: https://github.com/freewili/freewili-updater/releases
-- Update instructions:  https://docs.freewili.com/freewili-firmware-update/
+- Update instructions:  https://docs.freewili.com/getting-started/freewili-firmware-update/
 
 ## License
 
@@ -40,5 +40,5 @@ MIT License - See [LICENSE](LICENSE) file for details.
 ## Links
 
 - [Free-WILi Documentation](https://docs.freewili.com/)
-- [Firmware Update Instructions](https://docs.freewili.com/freewili-firmware-update/)
+- [Firmware Update Instructions](https://docs.freewili.com/getting-started/freewili-firmware-update/)
 - [GitHub Repository](https://github.com/freewili/freewili-updater)
