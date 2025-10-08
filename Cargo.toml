@@ -12,7 +12,7 @@ path = "src/main.rs"
 freewili-finder-rs = { version = "0.4.4" }
 lz4 = "1.25.0"
 serial2 = "0.2.33"
-thiserror = "2.0.16"
+thiserror = "2.0.17"
 tokio = { version = "1.47.1", features = ["full"] }
 dioxus = { version = "0.6.3", features = [] }
 base64 = "0.22"
