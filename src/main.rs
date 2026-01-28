@@ -13,14 +13,9 @@ mod built_info {
     include!(concat!(env!("OUT_DIR"), "/built.rs"));
 }
 use crate::flasher::FreeWiliUpdater;
-#[cfg(not(debug_assertions))]
-static MAIN_CSS: Option<Asset> = None;
-#[cfg(not(debug_assertions))]
+
 const MAIN_CSS_CONTENT: &str = include_str!("../assets/main.css");
-#[cfg(debug_assertions)]
-static MAIN_CSS: Option<Asset> = Some(asset!("assets/main.css"));
-#[cfg(debug_assertions)]
-const MAIN_CSS_CONTENT: &str = "";
+
 const HEADER_PNG_BYTES: &[u8] = include_bytes!("../assets/header.png");
 const DEFCON32_PNG_BYTES: &[u8] = include_bytes!("../assets/defcon32.png");
 const DEFCON33_PNG_BYTES: &[u8] = include_bytes!("../assets/defcon33.png");
@@ -59,14 +54,12 @@ fn main() {
                 let rgba = img.to_rgba8();
                 let (width, height) = rgba.dimensions();
                 Icon::from_rgba(rgba.into_raw(), width, height).ok()
+            } else if let Ok(img) = image::open("icons/icon.ico") {
+                let rgba = img.to_rgba8();
+                let (width, height) = rgba.dimensions();
+                Icon::from_rgba(rgba.into_raw(), width, height).ok()
             } else {
-                if let Ok(img) = image::open("icons/icon.ico") {
-                    let rgba = img.to_rgba8();
-                    let (width, height) = rgba.dimensions();
-                    Icon::from_rgba(rgba.into_raw(), width, height).ok()
-                } else {
-                    None
-                }
+                None
             }
         })
         .with_inner_size(LogicalSize::new(400.0, 600.0))
@@ -109,12 +102,12 @@ fn App() -> Element {
             .await;
     });
     rsx! {
-        if cfg!(debug_assertions) {
-            document::Stylesheet { href: MAIN_CSS.unwrap() }
-        } else {
-            document::Style { {MAIN_CSS_CONTENT} }
+        document::Style { {MAIN_CSS_CONTENT} }
+        div { id: "root",
+            div { id: "main",
+                FreeWiliUpdaterApp {}
+            }
         }
-        FreeWiliUpdaterApp {}
     }
 }
 #[component]
