@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=FreeWili Updater
+Comment=Update FreeWili badge firmware
+Icon=com.freewili.updater
+Exec=freewili-updater
+Terminal=false
+Categories=Utility;System;
+Keywords=firmware;updater;freewili;badge;

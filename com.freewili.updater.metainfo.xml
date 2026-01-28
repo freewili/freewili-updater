@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.freewili.updater</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <name>FreeWili Updater</name>
+  <summary>Update FreeWili badge firmware</summary>
+  <description>
+    <p>
+      FreeWili Updater is a utility for updating the firmware on FreeWili badges.
+      It supports flashing firmware to FreeWili Main, Display, and DEF CON badge variants.
+    </p>
+  </description>
+  <launchable type="desktop-id">com.freewili.updater.desktop</launchable>
+  <url type="homepage">https://github.com/FreeWili/freewili-updater</url>
+  <developer_name>FreeWili</developer_name>
+  <content_rating type="oars-1.1" />
+  <releases>
+    <release version="0.2.2" date="2026-01-27" />
+  </releases>
+</component>

@@ -1,0 +1,85 @@
+app-id: com.freewili.updater
+runtime: org.gnome.Platform
+runtime-version: "49"
+sdk: org.gnome.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.rust-stable
+  - org.freedesktop.Sdk.Extension.llvm21
+command: freewili-updater
+
+finish-args:
+  # Wayland and X11 support
+  - --socket=wayland
+  - --socket=x11
+  - --share=ipc
+  
+  # OpenGL support
+  - --device=dri
+  
+  # USB device access for flashing firmware
+  - --device=all
+  
+  # Network access (if needed)
+  - --share=network
+  
+  # Access to themes and icons
+  - --filesystem=xdg-data/icons:ro
+  - --filesystem=xdg-data/themes:ro
+  
+  # Webkit needs this
+  - --socket=pulseaudio
+  - --socket=session-bus
+  - --own-name=org.mpris.MediaPlayer2.freewili-updater
+  
+  # udev access for USB device enumeration
+  - --filesystem=/run/udev:ro
+  - --filesystem=/sys/bus/usb:ro
+  - --filesystem=/sys/class:ro
+  - --filesystem=/sys/devices:ro
+  
+  # Access to mounted drives for UF2 flashing
+  - --filesystem=/media
+  - --filesystem=/run/media
+  - --filesystem=/mnt
+  
+  # Dark mode / theme support
+  - --filesystem=xdg-run/dconf:ro
+  - --filesystem=~/.config/dconf:ro
+  - --talk-name=ca.desrt.dconf
+  # - --env=GTK_THEME=Adwaita:dark
+
+modules:
+  - name: libxdo
+    sources:
+      - type: archive
+        url: https://github.com/jordansissel/xdotool/releases/download/v3.20160805.1/xdotool-3.20160805.1.tar.gz
+        sha256: 35be5ff6edf0c620a0e16f09ea5e101d5173280161772fca18657d83f20fcca8
+    buildsystem: simple
+    build-commands:
+      - make -j$FLATPAK_BUILDER_N_JOBS
+      - install -Dm644 libxdo.so.3 /app/lib/libxdo.so.3
+      - ln -s libxdo.so.3 /app/lib/libxdo.so
+      - install -Dm644 xdo.h /app/include/xdo.h
+  
+  - name: freewili-updater
+    buildsystem: simple
+    build-options:
+      append-path: /usr/lib/sdk/rust-stable/bin:/usr/lib/sdk/llvm21/bin
+      prepend-ld-library-path: /usr/lib/sdk/llvm21/lib
+      build-args:
+        - --share=network
+      env:
+        CARGO_HOME: /run/build/freewili-updater/cargo
+        LIBCLANG_PATH: /usr/lib/sdk/llvm21/lib
+        PKG_CONFIG_PATH: /app/lib/pkgconfig:/app/share/pkgconfig
+    build-commands:
+      - cargo fetch --manifest-path Cargo.toml --verbose
+      - export RUSTFLAGS="-L /app/lib" && cargo build --release --verbose
+      - install -Dm755 ./target/release/freewili-updater -t /app/bin/
+      - install -Dm644 -t /app/share/freewili-updater assets/firmware/*.lz4
+      - install -Dm644 icons/icon-512.png /app/share/icons/hicolor/512x512/apps/com.freewili.updater.png
+      - install -Dm644 com.freewili.updater.desktop /app/share/applications/com.freewili.updater.desktop
+      - install -Dm644 com.freewili.updater.metainfo.xml /app/share/metainfo/com.freewili.updater.metainfo.xml
+    sources:
+      - type: dir
+        path: .

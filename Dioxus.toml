@@ -50,3 +50,18 @@ languages = ["English"]
 display_language_selector = false
 # Display name in Add/Remove Programs
 display_name = "FreeWili Updater"
+
+# Linux bundle configuration
+[bundle.linux]
+# Exclude wayland libraries - these should come from the host system
+appimage_exclude = [
+  "libwayland-*",
+  "libEGL*",
+  "libGL*",
+  "libOpenGL*",
+  "libGLX*",
+  "libgbm*",
+  "libdrm*",
+  "libvulkan*",
+  "libglvnd*"
+]
